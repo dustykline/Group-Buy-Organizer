@@ -13,15 +13,11 @@ class User: #(db.Model)
         self.is_admin = False
         self.is_root = False
 
-'''
+class Instance:
+    pass
 
-class U
+class Event:
+    pass
 
-
-
-
-
-
-
-
-'''
+class CaseSplit:
+    pass

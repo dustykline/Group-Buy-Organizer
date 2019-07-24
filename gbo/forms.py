@@ -2,8 +2,6 @@ from flask_wtf import FlaskForm
 from wtforms import BooleanField, PasswordField, SubmitField, StringField
 from wtforms.validators import DataRequired, Email, EqualTo, Length
 
-# login, register, item creation
-
 class RegistrationForm(FlaskForm):
     '''This field is used to register new accounts'''
 
