@@ -2,7 +2,7 @@ from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from groupbuyorganizer import web_app, database, bcrypt
-from groupbuyorganizer.forms import LoginForm, RegistrationForm
+from groupbuyorganizer.forms import LoginForm, RegistrationForm, UserOptionsForm
 from groupbuyorganizer.models import User
 
 @web_app.route("/")
@@ -47,10 +47,20 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
-@web_app.route("/account")
+@web_app.route("/account", methods=['GET', 'POST'])
 @login_required
 def account():
-    return render_template('account.html', title='Account Settings')
+    form = UserOptionsForm()
+    if form.validate_on_submit():
+        current_user.username = form.username.data
+        current_user.email = form.email.data
+        database.session.commit()
+        flash('Your account has been updated!', 'success')
+        return redirect(url_for('account'))
+    elif request.method == 'GET':
+        form.username.data = current_user.username
+        form.email.data = current_user.email
+    return render_template('account.html', title='Account Settings', form=form)
 
 @web_app.route("/admin")
 @login_required
