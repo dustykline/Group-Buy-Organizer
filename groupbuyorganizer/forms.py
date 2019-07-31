@@ -1,6 +1,6 @@
 from flask_login import current_user
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, PasswordField, SubmitField, StringField
+from wtforms import BooleanField, DecimalField, PasswordField, SubmitField, StringField, TextAreaField #todo notes
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
 from groupbuyorganizer.models import User
 
@@ -32,10 +32,13 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Log In')
 
 class CreateEvent(FlaskForm):
-    pass
+    event_name = StringField(validators=[DataRequired()])
+    submit = SubmitField('Add Category')
 
 class CreateItem(FlaskForm):
-    pass
+    item_name = StringField(validators=[DataRequired()])
+    category = 0
+    price = DecimalField()
 
 class CreateCategory(FlaskForm):
     pass
@@ -61,3 +64,19 @@ class UserOptionsForm(FlaskForm):
 
 class AdminConfig(FlaskForm):
     pass
+
+class RequestResetForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Request Password Reset')
+
+    def validate_email(self, email):
+        if email.data != current_user.username:
+            user = User.query.filter_by(email=email.data).first()
+            if user is None:
+                raise ValidationError('There is no account associated with that email.')
+
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Reset Password')
