@@ -24,10 +24,15 @@ def register():
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         user = User(username=form.username.data, email=form.email.data, password=hashed_password)
+        instance = Instance.query.first()
+        if instance.root_created == False:
+            user.is_root = True
+            user.is_admin = True
+            instance.root_created = True
+
         database.session.add(user)
         database.session.commit()
         flash(f'Your account has been created, you can now log in', 'success')
-        instance = 0 #todo, call
         return redirect(url_for('login'))
     return render_template('register.html', title='Register', form=form)
 
@@ -39,6 +44,9 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.password, form.password.data):
+            if user.disabled:
+                flash('This account has been disabled.', 'danger')
+                return redirect(url_for('home'))
             login_user(user, remember=form.remember.data)
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('home'))
@@ -66,13 +74,8 @@ def account():
         form.email.data = current_user.email
     return render_template('account.html', title='Account Settings', form=form)
 
-@web_app.route("/admin")
-@login_required
-def admin():
-    pass
-
 @web_app.route("/test")
-def test():
+def test(): #todo temp
     pass
 
 def send_reset_email(user):
@@ -115,3 +118,46 @@ def reset_token(token):
         flash(f'Your password has been updated, you can now log in!', 'success')
         return redirect(url_for('login'))
     return render_template('reset_token.html', title='Reset Password', form=form)
+
+@web_app.route("/userhelp")
+def userhelp():
+    return render_template('userhelp.html', title='User Help')
+
+@web_app.route("/adminhelp")
+def adminhelp():
+    return render_template('adminhelp.html', title='Admin Help')
+
+
+@web_app.route("/event_settings", methods=['GET', 'POST'])
+@login_required
+def event_settings():
+    admin_check(current_user)
+    return render_template('event_settings.html', title='Event Settings')
+
+
+@web_app.route("/category_settings", methods=['GET', 'POST'])
+@login_required
+def category_settings():
+    admin_check(current_user)
+    return render_template('category_settings.html', title='Category Settings')
+
+
+@web_app.route("/user_settings", methods=['GET', 'POST'])
+@login_required
+def user_settings():
+    admin_check(current_user)
+    users = User.query.order_by(User.username.asc()).all()
+    return render_template('user_settings.html', title='User Settings', users=users)
+
+
+@web_app.route("/app_settings", methods=['GET', 'POST'])
+@login_required
+def app_settings():
+    admin_check(current_user)
+    return render_template('app_settings.html', title='Application Settings')
+
+
+def admin_check(user):
+    if user.is_admin == False:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('home'))

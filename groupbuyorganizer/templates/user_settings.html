@@ -1,0 +1,62 @@
+{% extends "primary.html" %}
+{% block content %}
+    <div class="container mt-5">
+        <h2>User Settings</h2>
+    </div>
+    <div class="container mt-5">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">User Name</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Date Registered</th>
+                    <th scope="col">Account Level</th>
+                    <th scope="col">Toggle Admin?</th>
+                    <th scope="col">Disable Account?</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for user in users %}
+                {% if user.is_admin %}
+                    <tr class="table-success">
+                {% elif user.disabled %}
+                    <tr class="table-warning">
+                {% else %}
+                    <tr>
+                {% endif %}
+                <th scope="row">{{ user.username }}</th>
+                <td>{{ user.email }}</td>
+                <td>{{ user.date_created }}</td>
+                {% if user.is_root %}
+                    <td>Root Admin</td>
+                {% elif user.is_admin %}
+                    <td>Admin</td>
+                {% elif user.disabled %}
+                    <td>Disabled</td>
+                {% else %}
+                    <td>User</td>
+                {% endif %}
+                {% if not user.is_admin and current_user.is_root %}
+                    <td><button type="button" class="btn btn-outline-success btn-sm">Promote</button></td>
+                {% else %}
+                    {% if user.is_root or not current_user.is_root%}
+                        <td><button type="button" class="btn btn-outline-warning btn-sm" disabled>Demote</button></td>
+                    {% else %}
+                        <td><button type="button" class="btn btn-outline-warning btn-sm">Demote</button></td>
+                    {% endif %}
+                {% endif %}
+                {% if not user.disabled %}
+                    {% if user.is_root %}
+                        <td><button type="button" class="btn btn-outline-danger btn-sm" disabled>Disable</button></td>
+                    {% else %}
+                        <td><button type="button" class="btn btn-outline-danger btn-sm">Disable</button></td>
+                    {% endif %}
+                {% else %}
+                    <td><button type="button" class="btn btn-outline-success btn-sm">Enable</button></td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock content %} 
