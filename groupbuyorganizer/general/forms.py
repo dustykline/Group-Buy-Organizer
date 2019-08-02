@@ -1,8 +1,8 @@
 from flask_login import current_user
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, DecimalField, PasswordField, SubmitField, StringField, TextAreaField #todo notes
+from wtforms import BooleanField, PasswordField, StringField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
-from groupbuyorganizer.models import User
+
 
 
 class RegistrationForm(FlaskForm):
@@ -31,17 +31,6 @@ class LoginForm(FlaskForm):
     remember = BooleanField('Remember Me')
     submit = SubmitField('Log In')
 
-class CreateEvent(FlaskForm):
-    event_name = StringField(validators=[DataRequired()])
-    submit = SubmitField('Add Category')
-
-class CreateItem(FlaskForm):
-    item_name = StringField(validators=[DataRequired()])
-    category = 0
-    price = DecimalField()
-
-class CreateCategory(FlaskForm):
-    pass
 
 class UserOptionsForm(FlaskForm):
     '''This field is used to register new accounts'''
@@ -62,8 +51,6 @@ class UserOptionsForm(FlaskForm):
             if user:
                 raise ValidationError('That email is taken. Please choose a different one.')
 
-class AdminConfig(FlaskForm):
-    pass
 
 class RequestResetForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])

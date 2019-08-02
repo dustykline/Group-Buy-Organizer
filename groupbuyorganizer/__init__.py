@@ -4,20 +4,41 @@ from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_mail import Mail
 
-web_app = Flask(__name__)
-web_app.config['SECRET_KEY'] = 'temporary' #todo secrets.token_hex(16)... have in config.py file?
-web_app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
-database = SQLAlchemy(web_app)
-bcrypt = Bcrypt(web_app)
-login_manager = LoginManager(web_app)
-login_manager.login_view = 'login'
-login_manager.login_message_category = 'info'
-web_app.config['MAIL_SERVER'] = 'smtp.googlemail.com'
-web_app.config['MAIL_PORT'] = 587
-web_app.config['MAIL_USE_TLS'] = True
-web_app.config['MAIL_USERNAME'] = None #os.environ.get('EMAIL_USER') #todo merge into model
-web_app.config['MAIL_PASSWORD'] = None # ^same
-mail = Mail(web_app)
+from groupbuyorganizer.config import Configuration
 
-from groupbuyorganizer import routes
-from groupbuyorganizer.models import Instance
+web_app = Flask(__name__)
+web_app.config.from_object(Configuration)
+
+database = SQLAlchemy()
+bcrypt = Bcrypt()
+login_manager = LoginManager()
+login_manager.login_view = 'general.login'
+login_manager.login_message_category = 'info'
+mail = Mail()
+
+from groupbuyorganizer import routes #del
+from groupbuyorganizer.models import Instance #del?
+
+def create_app(config_class=Configuration):
+    web_app = Flask(__name__)
+    web_app.config.from_object(Configuration)
+
+    database.init_app(web_app)
+    bcrypt.init_app(web_app)
+    login_manager.init_app(web_app)
+    mail.init_app(web_app)
+
+    from groupbuyorganizer.admin.routes import admin  # todo do with other routes +2
+
+    web_app.register_blueprint(general)
+    web_app.register_blueprint(events)
+    web_app.register_blueprint(admin)  # todo rinse and repeat +2
+
+    database.create_all()
+    database.session.commit()
+
+    if Instance.query.get(1) is None:
+        database.session.add(Instance())
+        database.session.commit()
+
+    return web_app

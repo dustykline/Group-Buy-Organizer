@@ -2,5 +2,19 @@
 {% block content %}
     <div class="container mt-5">
         <h2>Application Settings</h2>
+        <form method="POST" action="">
+            {{ form.hidden_tag() }}
+            <fieldset class="form-group mt-5 mb-3">
+                <div class="form-group">
+                    <div class="form-check">
+                        {{ form.registration_enabled(class="form-check-input") }}
+                        {{ form.registration_enabled.label(class="form-check-label") }}
+                    </div>
+                </div>
+            </fieldset>
+            <div class="form-group">
+                {{ form.submit(class="btn btn-outline-info") }}
+            </div>
+        </form>
     </div>
-{% endblock content %} 
+{% endblock content %}
