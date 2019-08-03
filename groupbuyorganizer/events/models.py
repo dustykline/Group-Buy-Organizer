@@ -1,3 +1,6 @@
+from groupbuyorganizer import database, login_manager, web_app
+#todo change to from flask import current_app
+
 # class Event(database.Model):
 #     id = database.Column(database.Integer, primary_key=True)
 #     name = database.Column(database.String(120), unique=True, nullable=False)

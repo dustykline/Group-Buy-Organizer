@@ -4,41 +4,30 @@ from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_mail import Mail
 
-from groupbuyorganizer.config import Configuration
-
 web_app = Flask(__name__)
-web_app.config.from_object(Configuration)
+web_app.config['SECRET_KEY'] = 'temporary'
+web_app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 
-database = SQLAlchemy()
-bcrypt = Bcrypt()
-login_manager = LoginManager()
+database = SQLAlchemy(web_app)
+bcrypt = Bcrypt(web_app)
+login_manager = LoginManager(web_app)
 login_manager.login_view = 'general.login'
-login_manager.login_message_category = 'info'
-mail = Mail()
+login_manager.login_message_category = 'general.info'
+mail = Mail(web_app)
 
-from groupbuyorganizer import routes #del
-from groupbuyorganizer.models import Instance #del?
+from groupbuyorganizer.admin.models import Instance
 
-def create_app(config_class=Configuration):
-    web_app = Flask(__name__)
-    web_app.config.from_object(Configuration)
+from groupbuyorganizer.general.routes import general
+from groupbuyorganizer.events.routes import events
+from groupbuyorganizer.admin.routes import admin
+web_app.register_blueprint(general)
+web_app.register_blueprint(events)
+web_app.register_blueprint(admin)
 
-    database.init_app(web_app)
-    bcrypt.init_app(web_app)
-    login_manager.init_app(web_app)
-    mail.init_app(web_app)
+database.create_all()
+database.session.commit()
 
-    from groupbuyorganizer.admin.routes import admin  # todo do with other routes +2
-
-    web_app.register_blueprint(general)
-    web_app.register_blueprint(events)
-    web_app.register_blueprint(admin)  # todo rinse and repeat +2
-
-    database.create_all()
+# Creating an "Instance" model if there is none.
+if Instance.query.get(1) is None:
+    database.session.add(Instance())
     database.session.commit()
-
-    if Instance.query.get(1) is None:
-        database.session.add(Instance())
-        database.session.commit()
-
-    return web_app

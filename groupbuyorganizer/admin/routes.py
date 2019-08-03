@@ -1,25 +1,34 @@
-from flask import Blueprint
+from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
+
+from datetime import timezone
+
+from groupbuyorganizer import database
+from groupbuyorganizer.admin.forms import ApplicationSettingsForm
+from groupbuyorganizer.admin.models import Instance, User
+from groupbuyorganizer.admin.utilities import admin_check, admin_protector
+
 #these two go at each routes, except changing two names
 admin = Blueprint('admin', __name__)
 
 #todo- url_for('admin.home') etc prefix.  py, html
 
 
-@web_app.route("/event_settings/", methods=['GET', 'POST'])
+@admin.route("/event_settings/", methods=['GET', 'POST'])
 @login_required
 def event_settings():
     admin_check(current_user)
     return render_template('event_settings.html', title='Event Settings')
 
 
-@web_app.route("/category_settings/", methods=['GET', 'POST'])
+@admin.route("/category_settings/", methods=['GET', 'POST'])
 @login_required
 def category_settings():
     admin_check(current_user)
     return render_template('category_settings.html', title='Category Settings')
 
 
-@web_app.route("/user_settings/")
+@admin.route("/user_settings/")
 @login_required
 def user_settings():
     admin_check(current_user)
@@ -31,7 +40,7 @@ def user_settings():
     return render_template('user_settings.html', title='User Settings', users=users)
 
 
-@web_app.route("/user_settings/<int:user_id>/promote", methods=['GET'])
+@admin.route("/user_settings/<int:user_id>/promote", methods=['GET'])
 @login_required
 def promote_user(user_id):
     admin_check(current_user)
@@ -40,10 +49,10 @@ def promote_user(user_id):
     user.is_admin = True
     database.session.commit()
     flash(f'{user.username} has been promoted to admin!', 'info')
-    return redirect(url_for('user_settings'))
+    return redirect(url_for('admin.user_settings'))
 
 
-@web_app.route("/user_settings/<int:user_id>/demote")
+@admin.route("/user_settings/<int:user_id>/demote")
 @login_required
 def demote_user(user_id):
     admin_check(current_user)
@@ -52,10 +61,10 @@ def demote_user(user_id):
     user.is_admin = False
     database.session.commit()
     flash(f'{user.username} has been demoted!', 'info')
-    return redirect(url_for('user_settings'))
+    return redirect(url_for('admin.user_settings'))
 
 
-@web_app.route("/user_settings/<int:user_id>/disable")
+@admin.route("/user_settings/<int:user_id>/disable")
 @login_required
 def disable_user(user_id):
     admin_check(current_user)
@@ -65,10 +74,10 @@ def disable_user(user_id):
     user.disabled = True
     database.session.commit()
     flash(f'{user.username} has been disabled!', 'info')
-    return redirect(url_for('user_settings'))
+    return redirect(url_for('admin.user_settings'))
 
 
-@web_app.route("/user_settings/<int:user_id>/enable")
+@admin.route("/user_settings/<int:user_id>/enable")
 @login_required
 def enable_user(user_id):
     admin_check(current_user)
@@ -77,11 +86,11 @@ def enable_user(user_id):
     user.disabled = False
     database.session.commit()
     flash(f'{user.username} has been re-enabled!', 'info')
-    return redirect(url_for('user_settings'))
+    return redirect(url_for('admin.user_settings'))
 
 #####################################################
 
-@web_app.route("/app_settings", methods=['GET', 'POST'])
+@admin.route("/app_settings", methods=['GET', 'POST'])
 @login_required
 def app_settings():
     admin_check(current_user)
@@ -95,7 +104,7 @@ def app_settings():
         print(instance.registration_enabled)
         database.session.commit()
         flash('Changes saved!', 'info')
-        return redirect(url_for('app_settings'))
+        return redirect(url_for('admin.app_settings'))
     elif request.method == 'GET':
         form.registration_enabled.data = instance.registration_enabled
     return render_template('app_settings.html', title='Application Settings', form=form)

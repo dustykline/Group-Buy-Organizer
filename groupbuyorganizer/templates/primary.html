@@ -13,14 +13,14 @@
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a class="navbar-brand" href="{{ url_for('home') }}">Group Buy Organizer</a>
+        <a class="navbar-brand" href="{{ url_for('general.home') }}">Group Buy Organizer</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
         aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span></button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item active">
-                    <a class="nav-link" href="{{ url_for('about') }}">About <span class="sr-only">(current)</span></a>
+                    <a class="nav-link" href="{{ url_for('general.about') }}">About <span class="sr-only">(current)</span></a>
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
@@ -40,19 +40,18 @@
                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 Admin</a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                <a class="dropdown-item" href="{{ url_for('event_settings') }}">Event Settings</a>
-                                <a class="dropdown-item" href="{{ url_for('category_settings') }}">Category Settings</a>
-                                <a class="dropdown-item" href="{{ url_for('user_settings') }}">User Settings</a>
-                                <a class="dropdown-item" href="{{ url_for('app_settings') }}">Application Settings</a>
+                                <a class="dropdown-item" href="{{ url_for('admin.category_settings') }}">Category Settings</a>
+                                <a class="dropdown-item" href="{{ url_for('admin.user_settings') }}">User Settings</a>
+                                <a class="dropdown-item" href="{{ url_for('admin.app_settings') }}">Application Settings</a>
 
                             </div>
                         </li>
                     {% endif %}
-                <a class="nav-item nav-link" href="{{ url_for('account') }}">Account</a>
-                <a class="nav-item nav-link" href="{{ url_for('logout') }}">Logout</a>
+                <a class="nav-item nav-link" href="{{ url_for('general.account') }}">Account</a>
+                <a class="nav-item nav-link" href="{{ url_for('general.logout') }}">Logout</a>
             {% else %}
-                <a class="nav-item nav-link" href="{{ url_for('login') }}">Login</a>
-                <a class="nav-item nav-link" href="{{ url_for('register') }}">Register</a>
+                <a class="nav-item nav-link" href="{{ url_for('general.login') }}">Login</a>
+                <a class="nav-item nav-link" href="{{ url_for('general.register') }}">Register</a>
             {% endif %}
         </div>
     </nav>

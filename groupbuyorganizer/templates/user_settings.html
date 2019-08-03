@@ -41,12 +41,12 @@
                     <td><a class="btn btn-outline-success btn-sm disabled" href="#" role="button">Promote</a></td>
                 {% else %}
                     {% if not user.is_admin and current_user.is_root %}
-                        <td><a class="btn btn-outline-success btn-sm" href="{{ url_for('promote_user', user_id=user.id) }}" role="button">Promote</a></td>
+                        <td><a class="btn btn-outline-success btn-sm" href="{{ url_for('admin.promote_user', user_id=user.id) }}" role="button">Promote</a></td>
                     {% elif user.is_admin and current_user.is_root %}
                         {% if user.is_root %}
                             <td><a class="btn btn-outline-warning btn-sm disabled" href="#" role="button">Demote</a>
                         {% else %}
-                            <td><a class="btn btn-outline-warning btn-sm" href="{{ url_for('demote_user', user_id=user.id) }}" role="button">Demote</a></td>
+                            <td><a class="btn btn-outline-warning btn-sm" href="{{ url_for('admin.demote_user', user_id=user.id) }}" role="button">Demote</a></td>
                         {% endif %}
                     {% elif not user.is_admin and not current_user.is_root %}
                         <td><a class="btn btn-outline-success btn-sm disabled" href="#" role="button">Promote</a></td>
@@ -59,10 +59,10 @@
                     {% if user.is_root or user.is_admin and current_user.is_admin and not current_user.is_root %}
                         <td><a class="btn btn-outline-danger btn-sm disabled" href="#" role="button">Disable</a></td>
                     {% else %}
-                        <td><a class="btn btn-outline-danger btn-sm" href="{{ url_for('disable_user', user_id=user.id) }}" role="button">Disable</a></td>
+                        <td><a class="btn btn-outline-danger btn-sm" href="{{ url_for('admin.disable_user', user_id=user.id) }}" role="button">Disable</a></td>
                     {% endif %}
                 {% else %}
-                    <td><a class="btn btn-outline-success btn-sm" href="{{ url_for('enable_user', user_id=user.id) }}" role="button">Enable</a></td>
+                    <td><a class="btn btn-outline-success btn-sm" href="{{ url_for('admin.enable_user', user_id=user.id) }}" role="button">Enable</a></td>
                 {% endif %}
             </tr>
             {% endfor %}
