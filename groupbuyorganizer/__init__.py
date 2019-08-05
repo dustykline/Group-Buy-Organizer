@@ -16,13 +16,16 @@ login_manager.login_message_category = 'general.info'
 mail = Mail(web_app)
 
 from groupbuyorganizer.admin.models import Instance
+import groupbuyorganizer.events.models
 
 from groupbuyorganizer.general.routes import general
 from groupbuyorganizer.events.routes import events
 from groupbuyorganizer.admin.routes import admin
+from groupbuyorganizer.errors.handlers import errors
 web_app.register_blueprint(general)
 web_app.register_blueprint(events)
 web_app.register_blueprint(admin)
+web_app.register_blueprint(errors)
 
 database.create_all()
 database.session.commit()

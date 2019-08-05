@@ -4,17 +4,27 @@ from flask_mail import Message
 
 from groupbuyorganizer import database, bcrypt, mail
 from groupbuyorganizer.admin.models import Instance, User
+from groupbuyorganizer.events.forms import CreateEventForm
+from groupbuyorganizer.events.models import Event
 from groupbuyorganizer.general.forms import LoginForm, RegistrationForm, RequestResetForm, \
     ResetPasswordForm, UserOptionsForm
 
 general = Blueprint('general', __name__)
 
 @general.route("/events/")
-@general.route("/")
+@general.route("/", methods=['GET', 'POST'])
 def home():
+    form = CreateEventForm()
     instance = Instance.query.first()
+    events = Event.query.order_by(Event.name.asc()).all()
+    if form.validate_on_submit():
+        event = Event(name=form.event_name.data)
+        database.session.add(event)
+        database.session.commit()
+        flash('Event created!', 'success')
+        return redirect(url_for('general.home'))
     return render_template('home.html', root_created = instance.root_created,
-                           registration_enabled = instance.registration_enabled)
+                           registration_enabled = instance.registration_enabled, events=events, form=form)
 
 
 @general.route("/about/")

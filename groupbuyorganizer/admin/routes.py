@@ -4,15 +4,12 @@ from flask_login import current_user, login_required
 from datetime import timezone
 
 from groupbuyorganizer import database
-from groupbuyorganizer.admin.forms import ApplicationSettingsForm
-from groupbuyorganizer.admin.models import Instance, User
+from groupbuyorganizer.admin.forms import ApplicationSettingsForm, CreateCategoryForm
+from groupbuyorganizer.admin.models import Category, Instance, User
 from groupbuyorganizer.admin.utilities import admin_check, admin_protector
 
 #these two go at each routes, except changing two names
 admin = Blueprint('admin', __name__)
-
-#todo- url_for('admin.home') etc prefix.  py, html
-
 
 @admin.route("/event_settings/", methods=['GET', 'POST'])
 @login_required
@@ -25,7 +22,41 @@ def event_settings():
 @login_required
 def category_settings():
     admin_check(current_user)
-    return render_template('category_settings.html', title='Category Settings')
+    form = CreateCategoryForm()
+    if form.validate_on_submit():
+        category = Category(name=form.category_name.data)
+        database.session.add(category)
+        database.session.commit()
+        flash('Category successfully added!', 'success')
+        return redirect(url_for('admin.category_settings'))
+    categories = Category.query.order_by(Category.name.asc()).all()
+    return render_template('category_settings.html', title='Category Settings', categories=categories, form=form)
+
+@admin.route("/category_settings/<int:category_id>/edit/", methods=['GET', 'POST'])
+@login_required
+def category_edit(category_id):
+    admin_check(current_user)
+    category = Category.query.get_or_404(category_id)
+    form = CreateCategoryForm()
+    if form.validate_on_submit():
+        category.name = form.category_name.data
+        database.session.commit()
+        flash(f'{category.name} has been edited!', 'info')
+        return redirect(url_for('admin.category_settings'))
+    elif request.method == 'GET':
+        form.category_name.data = category.name
+    return render_template('category_edit.html', title='Edit Category Name', form=form)
+
+
+@admin.route("/category_settings/<int:category_id>/remove/", methods=['GET'])
+@login_required
+def category_remove(category_id):
+    admin_check(current_user)
+    category = Category.query.get_or_404(category_id)
+    database.session.delete(category)
+    database.session.commit()
+    flash('Category deleted!', 'info')
+    return redirect(url_for('admin.category_settings'))
 
 
 @admin.route("/user_settings/")

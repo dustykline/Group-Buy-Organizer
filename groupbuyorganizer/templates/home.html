@@ -2,7 +2,37 @@
 {% block content %}
     <div class="container">
     {% if current_user.is_authenticated %}
-        <p>events go here!</p>
+        {% if current_user.is_admin %}
+            <form method="POST" action="">
+                {{ form.hidden_tag() }}
+                <div class="form-group">
+                    <label>Event Name</label>
+                    {{ form.event_name(class="form-control form-control-lg", placeholder="Add New Event Here") }}
+                </div>
+                <div class="form-group">
+                    {{ form.submit(class="btn btn-outline-info") }}
+                </div>
+            </form>
+        {% endif %}
+    </div>
+        {% if events %}
+            <h1>Event List:</h1>
+            {% for event in events %}
+                <div class="container border border-primary rounded mt-5">
+                    <h2>{{ event.name }}</h2>
+                </div>
+            {% endfor %}
+        {% else %}
+            {% if current_user.is_admin %}
+                <div class="alert alert-info mt-5" role="alert">
+                    No events exist (yet), use the form right above to create some!
+                </div>
+            {% else %}
+                <div class="alert alert-info mt-5" role="alert">
+                    No events exist (yet), an administrator will need to create one!
+                </div>
+            {% endif %}
+        {% endif %}
     {% else %}
         <div class="alert alert-info mt-4" role="alert">
             <h2>
@@ -20,5 +50,4 @@
         {% endif %}
         </div>
     {% endif %}
-    </div>
 {% endblock content %}
