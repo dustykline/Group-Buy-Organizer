@@ -16,7 +16,7 @@ general = Blueprint('general', __name__)
 def home():
     form = CreateEventForm()
     instance = Instance.query.first()
-    events = Event.query.order_by(Event.name.asc()).all()
+    events = Event.query.order_by(Event.date_created.desc()).all()
     if form.validate_on_submit():
         event = Event(name=form.event_name.data)
         database.session.add(event)

@@ -18,8 +18,42 @@
         {% if events %}
             <h1>Event List:</h1>
             {% for event in events %}
-                <div class="container border border-primary rounded mt-5">
-                    <h2>{{ event.name }}</h2>
+                <div class="card mt-5">
+                    <div class="card-header">
+                        {% if not event.is_locked and not event.is_closed%}
+                            <span class="badge badge-success float-left m-2">Open</span>
+                        {% elif event.is_closed %}
+                                <span class="badge badge-secondary float-left m-2">Complete</span>
+                        {% elif event.is_locked %}
+                                <span class="badge badge-warning float-left m-2">Pending Completion</span>
+                        {% endif %}
+                        {% if current_user.is_admin %}
+                            <button type="button" class="btn btn-outline-secondary float-right m-1">Edit Event</button>
+                            {% if event.is_locked %}
+                                <button type="button" class="btn btn-outline-info float-right m-1">Manage Payments</button>
+                            {% endif %}
+                        {% endif %}
+                        <h3><a href="{{ url_for('events.event', event_id=event.id) }}">{{ event.name }}</a></h3>
+                        <h6 class="card-subtitle mb-2 text-muted">Created {{ event.date_created.strftime('%x') }}</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th scope="col">Active Partipicants</th>
+                                <th scope="col">Active Case Splits</th>
+                                <th scope="col">Total Cases</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>21</td>
+                                    <td>34</td>
+                                    <td>58</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             {% endfor %}
         {% else %}

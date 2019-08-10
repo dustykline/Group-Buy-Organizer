@@ -52,3 +52,4 @@ class Category(database.Model):
 
     id = database.Column(database.Integer, primary_key=True)
     name = database.Column(database.String(100), nullable=False, unique=True)
+    items = database.relationship('Item', backref='category', lazy=True)
