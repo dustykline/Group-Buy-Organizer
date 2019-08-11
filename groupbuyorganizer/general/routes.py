@@ -52,7 +52,7 @@ def register():
         database.session.add(user)
         database.session.commit()
         return redirect(url_for('general.login'))
-    return render_template('register.html', title='Register', form=form)
+    return render_template('register.html', title='Join Today', form=form)
 
 
 @general.route("/login/", methods=['GET', 'POST'])
@@ -71,7 +71,7 @@ def login():
             return redirect(next_page) if next_page else redirect(url_for('general.home'))
         else:
             flash('Login Unsuccessful. Please check email and password', 'danger')
-    return render_template('login.html', title='Login', form=form)
+    return render_template('login.html', title='Log In', form=form)
 
 
 @general.route("/logout/")
@@ -93,7 +93,7 @@ def account():
     elif request.method == 'GET':
         form.username.data = current_user.username
         form.email.data = current_user.email
-    return render_template('account.html', title='Account Settings', form=form)
+    return render_template('account.html', title=f'{current_user.username} Account Settings', form=form)
 
 
 def send_reset_email(user):

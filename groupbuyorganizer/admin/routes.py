@@ -11,11 +11,11 @@ from groupbuyorganizer.admin.utilities import admin_check, admin_protector
 #these two go at each routes, except changing two names
 admin = Blueprint('admin', __name__)
 
-@admin.route("/event_settings/", methods=['GET', 'POST'])
-@login_required
-def event_settings():
-    admin_check(current_user)
-    return render_template('event_settings.html', title='Event Settings')
+# @admin.route("/event_settings/", methods=['GET', 'POST'])
+# @login_required
+# def event_settings():
+#     admin_check(current_user)
+#     return render_template('event_edit.html', title='Event Settings')
 
 
 @admin.route("/category_settings/", methods=['GET', 'POST'])
@@ -56,7 +56,7 @@ def category_remove(category_id):
     database.session.delete(category)
     database.session.commit()
     flash('Category deleted!', 'info')
-    return redirect(url_for('admin.category_settings'))
+    return redirect(url_for('general.home'))
 
 
 @admin.route("/user_settings/")

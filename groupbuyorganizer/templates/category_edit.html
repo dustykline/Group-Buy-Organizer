@@ -1,11 +1,10 @@
 {% extends "primary.html" %}
 {% block content %}
     <div class="container mt-5">
-        <h2>Category Settings</h2>
         <form method="POST" action="">
             {{ form.hidden_tag() }}
             <div class="form-group">
-                <label for="exampleInputEmail1">Category Name</label>
+                <label>Category Name</label>
                 {{ form.category_name(class="form-control form-control-lg", placeholder="Edit Category Here") }}
             </div>
             <div class="form-group">

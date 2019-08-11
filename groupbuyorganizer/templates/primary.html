@@ -70,6 +70,11 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
+        {% if title %}
+            <div class="container border-bottom mt-5 mb-5">
+                <h2>{{ title }}</h2>
+            </div>
+        {% endif %}
         {% block content %}
         {% endblock %}
     </div>
