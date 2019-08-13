@@ -1,10 +1,11 @@
 {% extends "primary.html" %}
 {% block content %}
-    <div class="container">
+    <div class="container mt-5">
     {% if current_user.is_authenticated %}
         {% if current_user.is_admin %}
             <form method="POST" action="">
                 {{ form.hidden_tag() }}
+                <fieldset class="form-group">
                 {% if form.event_name.errors %}
                     {{ form.event_name(class="form-control form-control-lg is-invalid") }}
                     <div class="invalid-feedback">
@@ -14,7 +15,11 @@
                     </div>
                 {% else %}
                     {{ form.event_name(class="form-control form-control-lg", placeholder="Add New Event Here") }}
+                    <small class="text-muted">
+                        This field is only visible to administrators.
+                    </small>
                 {% endif %}
+                </fieldset>
                 <div class="form-group">
                     {{ form.submit(class="btn btn-outline-info") }}
                 </div>
@@ -22,16 +27,22 @@
         {% endif %}
     </div>
         {% if events %}
-            <h1>Event List:</h1>
+            <h1 class="mt-5">Event List:</h1>
             {% for event in events %}
-                <div class="card mt-5">
+                {% if not event.is_locked %}
+                    <div class="card mt-5 border border-success">
+                {% elif event.is_locked and not event.is_closed %}
+                    <div class="card mt-5 border border-warning">
+                {% else %}
+                    <div class="card mt-5 border border-secondary">
+                {% endif %}
                     <div class="card-header">
                         {% if not event.is_locked and not event.is_closed%}
                             <span class="badge badge-success float-left m-2">Open</span>
                         {% elif event.is_closed %}
                                 <span class="badge badge-secondary float-left m-2">Complete</span>
                         {% elif event.is_locked %}
-                                <span class="badge badge-warning float-left m-2">Pending Completion</span>
+                                <span class="badge badge-warning float-left m-2">Locked - Pending Completion</span>
                         {% endif %}
                         {% if current_user.is_admin %}
                             <a class="btn btn-outline-secondary float-right m-1" href="{{ url_for('events.event_edit', event_id=event.id) }}" role="button">Edit Event</a>
@@ -49,6 +60,8 @@
                                 <th scope="col">Active Partipicants</th>
                                 <th scope="col">Active Case Splits</th>
                                 <th scope="col">Total Cases</th>
+                                <th scope="col">Event Total</th>
+                                <th scope="col">Extra Charges</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -56,6 +69,8 @@
                                     <td>21</td>
                                     <td>34</td>
                                     <td>58</td>
+                                    <td>$7.77</td>
+                                    <td>{{ "$%.2f"|format(event.extra_charges) }}</td>
                                 </tr>
                             </tbody>
                         </table>

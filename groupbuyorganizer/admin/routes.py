@@ -8,15 +8,8 @@ from groupbuyorganizer.admin.forms import ApplicationSettingsForm, CreateCategor
 from groupbuyorganizer.admin.models import Category, Instance, User
 from groupbuyorganizer.admin.utilities import admin_check, admin_protector
 
-#these two go at each routes, except changing two names
+
 admin = Blueprint('admin', __name__)
-
-# @admin.route("/event_settings/", methods=['GET', 'POST'])
-# @login_required
-# def event_settings():
-#     admin_check(current_user)
-#     return render_template('event_edit.html', title='Event Settings')
-
 
 @admin.route("/category_settings/", methods=['GET', 'POST'])
 @login_required
@@ -31,6 +24,7 @@ def category_settings():
         return redirect(url_for('admin.category_settings'))
     categories = Category.query.order_by(Category.name.asc()).all()
     return render_template('category_settings.html', title='Category Settings', categories=categories, form=form)
+
 
 @admin.route("/category_settings/<int:category_id>/edit/", methods=['GET', 'POST'])
 @login_required
@@ -48,7 +42,7 @@ def category_edit(category_id):
     return render_template('category_edit.html', title='Edit Category Name', form=form)
 
 
-@admin.route("/category_settings/<int:category_id>/remove/", methods=['GET'])
+@admin.route("/categories/<int:category_id>/remove/", methods=['GET'])
 @login_required
 def category_remove(category_id):
     admin_check(current_user)
@@ -56,7 +50,7 @@ def category_remove(category_id):
     database.session.delete(category)
     database.session.commit()
     flash('Category deleted!', 'info')
-    return redirect(url_for('general.home'))
+    return redirect(url_for('admin.category_settings'))
 
 
 @admin.route("/user_settings/")

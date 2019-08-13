@@ -2,23 +2,93 @@
 {% block content %}
     <div class="container mt-5">
         <form method="POST" action="">
-            {{ form.hidden_tag() }}
+            {{ event_name_form.hidden_tag() }}
             <div class="form-group">
                 <label>Event Name</label>
-                {% if form.event_name.errors %}
-                        {{ form.event_name(class="form-control form-control-lg is-invalid") }}
+                {% if event_name_form.event_name.errors %}
+                        {{ event_name_form.event_name(class="form-control form-control-lg is-invalid") }}
                         <div class="invalid-feedback">
-                            {% for error in form.event_name.errors %}
+                            {% for error in event_name_form.event_name.errors %}
                                 <span>{{ error }}</span>
                             {% endfor %}
                         </div>
                     {% else %}
-                        {{ form.event_name(class="form-control form-control-lg") }}
+                        {{ event_name_form.event_name(class="form-control form-control-lg") }}
                     {% endif %}
             </div>
             <div class="form-group">
-                {{ form.submit(class="btn btn-outline-info") }}
+                {{ event_name_form.submit(class="btn btn-outline-info") }}
             </div>
         </form>
     </div>
-{% endblock content %} 
+    <h3 class="container mt-5 border-bottom">Event Configuration</h3>
+    <div class="container">
+        <table class="table mt-3">
+                            <thead>
+                            <tr>
+                                <th scope="col">Extra Charges ($)</th>
+                                <th scope="col">Toggle Lock?</th>
+                                <th scope="col">Close Group Buy?</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <form class="form-inline" method="POST" action="">
+                                            {{ event_extra_charge_form.hidden_tag() }}
+                                            {% if event_extra_charge_form.extra_charges.errors %}
+                                                {{ event_extra_charge_form.extra_charges(class="form-control form-control is-invalid float-left") }}
+                                                <div class="invalid-feedback">
+                                                {% for error in event_extra_charge_form.extra_charges.errors %}
+                                                    <span>{{ error }}</span>
+                                                {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                {{ event_extra_charge_form.extra_charges(class="form-control form-control float-left") }}
+                                            {% endif %}
+                                            {{ event_extra_charge_form.submit(class="btn btn-outline-info float-right ml-2") }}
+                                        </form>
+                                    </td>
+                                    {% if event.is_closed %}
+                                        <td><a class="btn btn-outline-warning disabled" href="#" role="button">Unlock</a></td>
+                                        <td><a class="btn btn-outline-secondary" href="{{ url_for('events.event_open', event_id=event.id) }}" role="button">Open</a></td>
+                                    {% else %}
+                                        {% if event.is_locked%}
+                                            <td><a class="btn btn-outline-warning" href="{{ url_for('events.event_unlock', event_id=event.id) }}" role="button">Unlock</a></td>
+                                            <td><a class="btn btn-outline-secondary" href="{{ url_for('events.event_close', event_id=event.id) }}" role="button">Close</a></td>
+                                        {% else %}
+                                            <td><a class="btn btn-outline-warning" href="{{ url_for('events.event_lock', event_id=event.id) }}" role="button">Lock</a></td>
+                                            <td><a class="btn btn-outline-secondary" href="{{ url_for('events.event_close', event_id=event.id) }}" role="button">Close</a></td>
+                                        {% endif %}
+                                    {% endif %}
+                                </tr>
+                            </tbody>
+                        </table>
+    </div>
+    <h3 class="container mt-5 border-bottom">Danger Zone</h3>
+    <div class="container">
+        <button type="button" class="btn btn-outline-danger mb-5" data-toggle="modal" data-target="#warningModal">
+            Delete Event
+        </button>
+    </div>
+
+    <div class="modal fade" id="warningModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Event?</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you wish to delete this event?  This cannot be undone!
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
+                    <a class="btn btn-outline-danger" href="{{ url_for('events.event_remove', event_id=event.id) }}" role="button">Delete</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

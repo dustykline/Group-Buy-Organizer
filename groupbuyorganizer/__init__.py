@@ -15,7 +15,7 @@ login_manager.login_view = 'general.login'
 login_manager.login_message_category = 'general.info'
 mail = Mail(web_app)
 
-from groupbuyorganizer.admin.models import Instance
+from groupbuyorganizer.admin.models import Category, Instance
 import groupbuyorganizer.events.models
 
 from groupbuyorganizer.general.routes import general
@@ -33,4 +33,5 @@ database.session.commit()
 # Creating an "Instance" model if there is none.
 if Instance.query.get(1) is None:
     database.session.add(Instance())
+    database.session.add(Category(name='Uncategorized'))
     database.session.commit()

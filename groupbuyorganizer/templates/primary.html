@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="shortcut icon" href="{{ url_for("static", filename="favicon.ico") }}" type="image/x-icon">
+    <link rel="icon" href="{{ url_for("static", filename="favicon.ico") }}" type="image/x-icon">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
           integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="../static/style.css">
@@ -12,8 +14,8 @@
     {% endif %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a class="navbar-brand" href="{{ url_for('general.home') }}">Group Buy Organizer</a>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+        <a class="navbar-brand" href="{{ url_for('general.home') }}"><img src="{{ url_for("static", filename="box.svg") }}" width="30" height="30" class="d-inline-block align-top mr-2" alt="">Group Buy Organizer</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
         aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span></button>
@@ -43,7 +45,6 @@
                                 <a class="dropdown-item" href="{{ url_for('admin.category_settings') }}">Category Settings</a>
                                 <a class="dropdown-item" href="{{ url_for('admin.user_settings') }}">User Settings</a>
                                 <a class="dropdown-item" href="{{ url_for('admin.app_settings') }}">Application Settings</a>
-
                             </div>
                         </li>
                     {% endif %}
@@ -55,9 +56,8 @@
             {% endif %}
         </div>
     </nav>
-    <hr>
-<!--  temporary ^^^  -->
-    <div class="container">
+
+    <div class="container mt-5">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}

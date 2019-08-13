@@ -37,7 +37,7 @@
                         {% for category in categories %}
                             <tr>
                             <th scope="row">{{ category.name }}</th>
-                            <td>placeholder</td>
+                            <td>{{ category.items|length }}</td>
                             <td><a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.category_edit', category_id=category.id) }}" role="button">Edit</a></td>
                             <td><a class="btn btn-outline-danger btn-sm" href="{{ url_for('admin.category_remove', category_id=category.id) }}" role="button">Delete</a></td>
                             </tr>
