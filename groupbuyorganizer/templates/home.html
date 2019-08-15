@@ -37,7 +37,7 @@
                     <div class="card mt-5 border border-secondary">
                 {% endif %}
                     <div class="card-header">
-                        {% if not event.is_locked and not event.is_closed%}
+                        {% if not event.is_locked and not event.is_closed %}
                             <span class="badge badge-success float-left m-2">Open</span>
                         {% elif event.is_closed %}
                                 <span class="badge badge-secondary float-left m-2">Complete</span>
@@ -68,8 +68,8 @@
                                 <tr>
                                     <td>21</td>
                                     <td>34</td>
-                                    <td>58</td>
-                                    <td>$7.77</td>
+                                    <td>76</td>
+                                    <td>$8756.00</td>
                                     <td>{{ "$%.2f"|format(event.extra_charges) }}</td>
                                 </tr>
                             </tbody>

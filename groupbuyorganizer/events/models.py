@@ -10,8 +10,7 @@ class Event(database.Model):
     is_locked = database.Column(database.Boolean, nullable=False, default=False)
     is_closed = database.Column(database.Boolean, nullable=False, default=False)
     extra_charges = database.Column(database.Numeric(precision=2), nullable=False, default=0.00)
-
-    # items = database.relationship('Item', backref='event', lazy='') #todo next
+    items = database.relationship('Item', backref='event', cascade='all, delete-orphan')
 
 
 class Item(database.Model):
@@ -24,12 +23,12 @@ class Item(database.Model):
     added_by = database.Column(database.Integer, database.ForeignKey('user.id'), nullable=False)
 
 
-# class CaseBuy(database.Model):
-#
-#     user_id = database.ForeignKey('user.id', primary_key=True)
-#     event_id = database.ForeignKey('event.id')
-#     item_id = database.ForeignKey('item.id')
-#     quantity = database.Column(database.Integer, nullable=False)
+class CaseBuy(database.Model):
+    id = database.Column(database.Integer, primary_key=True)
+    user_id = database.Column(database.Integer, database.ForeignKey('user.id'), nullable=False)
+    event_id = database.Column(database.Integer, database.ForeignKey('event.id'), nullable=False)
+    item_id = database.Column(database.Integer, database.ForeignKey('item.id'), nullable=False)
+    quantity = database.Column(database.Integer, nullable=False)
 
 
 # haspaid = database.Table('has_paid',

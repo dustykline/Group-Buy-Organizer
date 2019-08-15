@@ -25,10 +25,23 @@ class CreateItemForm(FlaskForm):
     price = DecimalField('Price of Item ($)', validators=[DataRequired()])
     packing = IntegerField('Case packing For Item', validators=[DataRequired()])
     category_id = SelectField('Select Item Category', coerce=int, validators=[InputRequired()])
-    # added_by = None
     submit = SubmitField('Submit')
 
     def validate_item_name(self, item_name):
         item = Item.query.filter_by(name=item_name.data).first()
         if item:
             raise ValidationError('That item name is taken. Please choose a different one.')
+
+class EditItemForm(FlaskForm):
+    item_name = StringField('Item Name', validators=[DataRequired()])
+    price = DecimalField('Price of Item ($)', validators=[DataRequired()])
+    packing = IntegerField('Case packing For Item', validators=[DataRequired()])
+    category_id = SelectField('Select Item Category', coerce=int, validators=[InputRequired()])
+    submit = SubmitField('Submit')
+
+class CaseQuantityOrderForm(FlaskForm):
+    choicesList = []
+    for i in range(100):
+        choicesList.append((i, i))
+    quantity = SelectField('Cases To Order', coerce=int, choices=choicesList)
+    submit = SubmitField('Update')
