@@ -4,6 +4,7 @@ from flask_mail import Message
 
 from groupbuyorganizer import database, bcrypt, mail
 from groupbuyorganizer.admin.models import Instance, User
+from groupbuyorganizer.admin.utilities import HomeEvent
 from groupbuyorganizer.events.forms import CreateEventForm
 from groupbuyorganizer.events.models import Event
 from groupbuyorganizer.general.forms import LoginForm, RegistrationForm, RequestResetForm, \
@@ -17,13 +18,18 @@ def home():
     form = CreateEventForm()
     instance = Instance.query.first()
     events = Event.query.order_by(Event.date_created.desc()).all()
+
+    home_event_list = []
+    for event in events:
+        home_event_list.append(HomeEvent(event))
+
     if form.validate_on_submit():
-        event = Event(name=form.event_name.data)
+        event = Event(name=form.event_name.data, added_by=current_user.id)
         database.session.add(event)
         database.session.commit()
         flash('Event created!', 'success')
         return redirect(url_for('general.home'))
-    return render_template('home.html', root_created = instance.root_created,
+    return render_template('home.html', root_created = instance.root_created, home_event_list=home_event_list,
                            registration_enabled = instance.registration_enabled, events=events, form=form)
 
 

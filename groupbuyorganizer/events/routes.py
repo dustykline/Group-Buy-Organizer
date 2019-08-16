@@ -5,8 +5,8 @@ from groupbuyorganizer import database
 from groupbuyorganizer.admin.models import Category, User
 from groupbuyorganizer.admin.utilities import admin_check
 from groupbuyorganizer.events.forms import CreateItemForm, CreateEventForm, CaseQuantityOrderForm, EditItemForm, \
-    EventExtraChargeForm
-from groupbuyorganizer.events.models import Event, Item
+    EventExtraChargeForm, EventNotesForm
+from groupbuyorganizer.events.models import CaseBuy, Event, Item
 from groupbuyorganizer.events.utilities import StructuredItemList
 
 
@@ -27,7 +27,9 @@ def event(event_id):
     #Items Setup
     items = database.session.query(Item, Category.name).filter_by(event_id=event.id).join(Category, Item.category_id
                                                             == Category.id).order_by(Category.name, Item.name).all()
-    structured_item_list = StructuredItemList(items)
+    structured_item_list = None
+    if items:
+        structured_item_list = StructuredItemList(items)
 
     if form.validate_on_submit():
         item = Item(name=form.item_name.data, price=form.price.data, packing=form.packing.data,
@@ -48,6 +50,7 @@ def event_edit(event_id):
     event = Event.query.get_or_404(event_id)
     event_name_form = CreateEventForm()
     event_extra_charge_form = EventExtraChargeForm()
+    event_notes_form = EventNotesForm()
     if event_name_form.validate_on_submit():
         event.name = event_name_form.event_name.data
         database.session.commit()
@@ -58,12 +61,20 @@ def event_edit(event_id):
         database.session.commit()
         flash('Extra charges updated!', 'info')
         return redirect(url_for('events.event_edit', event_id=event_id))
+    elif event_notes_form.validate_on_submit():
+        event.notes = event_notes_form.event_notes.data
+        database.session.commit()
+        flash('Event notes updated!', 'info')
+        return redirect(url_for('events.event_edit', event_id=event_id))
     elif request.method == 'GET':
         event_name_form.event_name.data = event.name
         event_extra_charge_form.extra_charges.data = event.extra_charges
+        if event.notes:
+            event_notes_form.event_notes.data = event.notes
 
     return render_template('event_edit.html', title=f'{event.name} - Edit', event_name_form=event_name_form,
-                           event_extra_charge_form=event_extra_charge_form, event=event)
+                           event_extra_charge_form=event_extra_charge_form, event_notes_form=event_notes_form,
+                           event=event)
 
 @events.route("/category_settings/<int:event_id>/remove/", methods=['GET'])
 @login_required
@@ -137,6 +148,8 @@ def item(event_id, item_id):
     # Case Quantity Form
     order_case_form = CaseQuantityOrderForm()
 
+    print(current_user.id)
+
     if edit_item_form.validate_on_submit():
         item.name = edit_item_form.item_name.data
         item.category_id = edit_item_form.category_id.data
@@ -146,12 +159,39 @@ def item(event_id, item_id):
         flash('Item successfully added!', 'success')
         return redirect(url_for('events.event', event_id=event_id))
 
+    elif order_case_form.validate_on_submit():
+        previous_order = CaseBuy.query.filter_by(user_id=current_user.id, event_id=event_id).first()
+        if not previous_order:
+            case_buy = CaseBuy(user_id=current_user.id, event_id=event_id, item_id=item_id,
+                               quantity=order_case_form.quantity.data)
+            database.session.add(case_buy)
+            database.session.commit()
+            flash('Case order for item added!', 'success')
+            return redirect(url_for('events.event', event_id=event_id))
+        else:
+            if order_case_form.quantity.data == 0:
+                database.session.delete(previous_order)
+                database.session.commit()
+                flash('Case(s) removed from your order!', 'info')
+                return redirect(url_for('events.event', event_id=event_id))
+            else:
+                previous_order.quantity = order_case_form.quantity.data
+                database.session.commit()
+                flash('Case quantity updated!', 'info')
+                return redirect(url_for('events.event', event_id=event_id))
+
+
     elif request.method == 'GET':
         edit_item_form.category_id.choices = categories_list
         edit_item_form.item_name.data = item.name
         edit_item_form.category_id.data = item.category_id
         edit_item_form.price.data = item.price
         edit_item_form.packing.data = item.packing
+
+        previous_order = CaseBuy.query.filter_by(user_id=current_user.id, event_id=event_id).first()
+        if previous_order:
+            order_case_form.quantity.data = previous_order.quantity
+
 
     return render_template('item.html', added_by_user=added_by_user, form=edit_item_form,
                            order_case_form=order_case_form, event=event, item=item,
@@ -160,9 +200,11 @@ def item(event_id, item_id):
 @events.route('/events/<int:event_id>/items/<int:item_id>/remove/', methods=['GET'])
 @login_required
 def remove_item(event_id, item_id):
-    print('fired!')
     admin_check(current_user)
     event = Event.query.get_or_404(event_id)
     item = Item.query.get_or_404(item_id)
-    flash('placeholder text until db wired in here, no actions taken', 'primary')
+    # case_buys = CaseBuy.query.filter_by(item_id=item.id)
+    database.session.delete(item)
+    database.session.commit()
+    flash('Item successfully removed!', 'info')
     return redirect(url_for('events.event', event_id=event_id))

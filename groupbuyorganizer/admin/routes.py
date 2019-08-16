@@ -145,19 +145,19 @@ def app_settings():
 @admin.cli.command('bootstrap')
 @admin.route("/bootstrap", methods=['GET', 'POST'])
 def bootstrap():
-    database.drop_all()
-    database.create_all()
+    # database.drop_all()
+    # database.create_all()
 
-    database.session.add(Instance())
+    # database.session.add(Instance())
 
-    database.session.add(Category(name='Uncategorized'))
+    # database.session.add(Category(name='Uncategorized'))
     database.session.add(Category(name='Dog Toys'))
     database.session.add(Category(name='Cat Toys'))
     database.session.add(Category(name='Fish Supplies'))
     database.session.add(Category(name='Dog Food'))
 
-    database.session.add(Event(name='Test Session 1'))
-    database.session.add(Event(name='Test Session 2'))
+    database.session.add(Event(name='Test Session 1', added_by=1))
+    database.session.add(Event(name='Test Session 2', added_by=1))
     database.session.commit()
 
     flash('Success!', 'primary')

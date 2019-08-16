@@ -1,66 +1,99 @@
 {% extends "primary.html" %}
 {% block content %}
-    <div class="card mb-5">
-        <div class="card-header">
-            <h3 class="card-title">Add New Item</h3>
-            <h6 class="card-subtitle mb-2 text-muted">Don't see an item from the pricelist on this page?  Use this form to add it.</h6>
-        </div>
-        <div class="card-header">
-            <form method="POST" action="">
-                {{ form.hidden_tag() }}
-                <div class="form-row">
-                    <div class="col">
-                        {{ form.item_name.label(class="form-control-label") }}
-                        {% if form.item_name.errors %}
-                            {{ form.item_name(class="form-control form-control-lg is-invalid") }}
-                            <div class="invalid-feedback">
-                                {% for error in form.item_name.errors %}
-                                    <span>{{ error }}</span>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            {{ form.item_name(class="form-control form-control-lg") }}
-                        {% endif %}
-                    </div>
-                    <div class="col">
-                        {{ form.category_id.label(class="form-control-label") }}
-                        {{ form.category_id(class_="form-control") }}
-                    </div>
-                </div>
-                <div class="form-row mt-2">
-                    <div class="col">
-                        {{ form.price.label(class="form-control-label") }}
-                        {% if form.price.errors %}
-                            {{ form.price(class="form-control form-control-lg is-invalid", placeholder="0.00") }}
-                            <div class="invalid-feedback">
-                                {% for error in form.price.errors %}
-                                    <span>{{ error }}</span>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            {{ form.price(class="form-control form-control-lg", placeholder="0.00") }}
-                        {% endif %}
-                    </div>
-                    <div class="col">
-                        {{ form.packing.label(class="form-control-label") }}
-                        {% if form.packing.errors %}
-                            {{ form.packing(class="form-control form-control-lg is-invalid", placeholder="4 for 4/1, 12 for 12/1, etc...") }}
-                            <div class="invalid-feedback">
-                                {% for error in form.packing.errors %}
-                                    <span>{{ error }}</span>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            {{ form.packing(class="form-control form-control-lg", placeholder="4 for 4/1, 12 for 12/1, etc...") }}
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="form-row">
-                    {{ form.submit(class="btn btn-outline-info mt-4 ml-1") }}
-                </div>
-            </form>
-        </div>
+    <div class="container mb-5">
+        {% if not event.is_locked and not event.is_closed %}
+            <div class="alert alert-success mx-auto">
+                <h3><p class="text-center">Open</p></h3>
+                <p class="text-center">This group buy event is currently open.  Add items in the form right below if you
+                don't see them already displayed below.  Click the name of the item to buy whole cases of it, or participate
+                in a case split.</p>
+            </div>
+        {% elif event.is_closed %}
+            <div class="alert alert-secondary mx-auto">
+                <h3><p class="text-center">Closed</p></h3>
+                <p class="text-center">This group buy is marked as complete.</p>
+            </div>
+        {% elif event.is_locked %}
+            <div class="alert alert-warning mx-auto">
+                <h3><p class="text-center">Locked - Pending Completion</p></h3>
+                <p class="text-center">This group buy has been marked as locked by an administrator.  Transactions and
+                orders are locked into place, and cannot be modified.  Events are locked as they are winding down towards
+                completion, or if the administrator chooses to temporarily disable orders for whatever reason.  Talk
+                to the event organizer for more information.</p>
+            </div>
+        {% endif %}
     </div>
+    {% if event.notes %}
+        <div class="container mb-5">
+            <div class="alert alert-info mx-auto">
+                <h3><p class="text-center">Event Notes From Admin</p></h3>
+                <p class="text-center">{{ event.notes }}</p>
+            </div>
+        </div>
+    {% endif %}
+    {% if not event.is_locked %}
+        <div class="card mb-5">
+            <div class="card-header">
+                <h3 class="card-title">Add New Item</h3>
+                <h6 class="card-subtitle mb-2 text-muted">Don't see an item from the pricelist on this page?  Use this form to add it.</h6>
+            </div>
+            <div class="card-header">
+                <form method="POST" action="">
+                    {{ form.hidden_tag() }}
+                    <div class="form-row">
+                        <div class="col">
+                            {{ form.item_name.label(class="form-control-label") }}
+                            {% if form.item_name.errors %}
+                                {{ form.item_name(class="form-control form-control-lg is-invalid") }}
+                                <div class="invalid-feedback">
+                                    {% for error in form.item_name.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.item_name(class="form-control form-control-lg") }}
+                            {% endif %}
+                        </div>
+                        <div class="col">
+                            {{ form.category_id.label(class="form-control-label") }}
+                            {{ form.category_id(class_="form-control") }}
+                        </div>
+                    </div>
+                    <div class="form-row mt-2">
+                        <div class="col">
+                            {{ form.price.label(class="form-control-label") }}
+                            {% if form.price.errors %}
+                                {{ form.price(class="form-control form-control-lg is-invalid", placeholder="0.00") }}
+                                <div class="invalid-feedback">
+                                    {% for error in form.price.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.price(class="form-control form-control-lg", placeholder="0.00") }}
+                            {% endif %}
+                        </div>
+                        <div class="col">
+                            {{ form.packing.label(class="form-control-label") }}
+                            {% if form.packing.errors %}
+                                {{ form.packing(class="form-control form-control-lg is-invalid", placeholder="4 for 4/1, 12 for 12/1, etc...") }}
+                                <div class="invalid-feedback">
+                                    {% for error in form.packing.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.packing(class="form-control form-control-lg", placeholder="4 for 4/1, 12 for 12/1, etc...") }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        {{ form.submit(class="btn btn-outline-info mt-4 ml-1") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endif %}
     {% if structured_item_list %}
         {% for group in structured_item_list.group_lists %}
             <div class="container mb-4">
@@ -72,9 +105,9 @@
                             <th scope="col">Case Price</th>
                             <th scope="col">Packing</th>
                             <th scope="col">Price Per Piece</th>
-                            <th scope="col">Cases You've Bought</th>
-                            <th scope="col">Pieces You've Bought</th>
                             <th scope="col">Active Case Splits</th>
+                            <th scope="col">Cases You've Reserved</th>
+                            <th scope="col">Pieces You've Locked in</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -85,7 +118,7 @@
                                 <td>{{ item.packing }} / 1</td>
                                 <td>{{ "$%.2f"|format(item.price/item.packing) }}</td>
                                 <td>Placeholder</td>
-                                <td>Placeholder</td>
+                                <td>{{ item.cases_reserved }}</td>
                                 <td>Placeholder</td>
                             </tr>
                         {% endfor %}

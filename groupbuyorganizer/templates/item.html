@@ -99,11 +99,15 @@
                 <div class="form-row">
                     <div class="col">
                         {{ order_case_form.quantity.label(class="form-control-label mb-2") }}
-                        {{ order_case_form.quantity(class_="form-control") }}
+                        {{ order_case_form.quantity(class="form-control") }}
                     </div>
                 </div>
                 <div class="form-row">
-                    {{ order_case_form.submit(class="btn btn-outline-info mt-4 ml-1") }}
+                    {% if event.is_locked %}
+                        <button type="button" class="btn btn-outline-info disabled mt-4 ml-1" disabled>Update</button>
+                    {% else %}
+                        {{ order_case_form.submit(class="btn btn-outline-info mt-4 ml-1") }}
+                    {% endif %}
                 </div>
             </form>
         </div>

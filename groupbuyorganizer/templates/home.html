@@ -28,30 +28,30 @@
     </div>
         {% if events %}
             <h1 class="mt-5">Event List:</h1>
-            {% for event in events %}
-                {% if not event.is_locked %}
+            {% for item in home_event_list %}
+                {% if not item.event.is_locked %}
                     <div class="card mt-5 border border-success">
-                {% elif event.is_locked and not event.is_closed %}
+                {% elif item.event.is_locked and not item.event.is_closed %}
                     <div class="card mt-5 border border-warning">
                 {% else %}
                     <div class="card mt-5 border border-secondary">
                 {% endif %}
                     <div class="card-header">
-                        {% if not event.is_locked and not event.is_closed %}
+                        {% if not item.event.is_locked and not item.event.is_closed %}
                             <span class="badge badge-success float-left m-2">Open</span>
-                        {% elif event.is_closed %}
+                        {% elif item.event.is_closed %}
                                 <span class="badge badge-secondary float-left m-2">Complete</span>
-                        {% elif event.is_locked %}
+                        {% elif item.event.is_locked %}
                                 <span class="badge badge-warning float-left m-2">Locked - Pending Completion</span>
                         {% endif %}
                         {% if current_user.is_admin %}
-                            <a class="btn btn-outline-secondary float-right m-1" href="{{ url_for('events.event_edit', event_id=event.id) }}" role="button">Edit Event</a>
-                            {% if event.is_locked %}
+                            <a class="btn btn-outline-secondary float-right m-1" href="{{ url_for('events.event_edit', event_id=item.event.id) }}" role="button">Edit Event</a>
+                            {% if item.event.is_locked %}
                                 <button type="button" class="btn btn-outline-info float-right m-1">Manage Payments</button>
                             {% endif %}
                         {% endif %}
-                        <h3><a href="{{ url_for('events.event', event_id=event.id) }}">{{ event.name }}</a></h3>
-                        <h6 class="card-subtitle mb-2 text-muted">Created {{ event.date_created.strftime('%x') }}</h6>
+                        <h3><a href="{{ url_for('events.event', event_id=item.event.id) }}">{{ item.event.name }}</a></h3>
+                        <h6 class="card-subtitle mb-2 text-muted">Created {{ item.event.date_created.strftime('%x') }} by {{ item.added_by }}</h6>
                     </div>
                     <div class="card-body">
                         <table class="table">
@@ -59,18 +59,18 @@
                             <tr>
                                 <th scope="col">Active Partipicants</th>
                                 <th scope="col">Active Case Splits</th>
-                                <th scope="col">Total Cases</th>
-                                <th scope="col">Event Total</th>
-                                <th scope="col">Extra Charges</th>
+                                <th scope="col">Total Cases Reserved</th>
+                                <th scope="col">Total Case Cost</th>
+                                <th scope="col">Added Charges</th>
                             </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>21</td>
-                                    <td>34</td>
-                                    <td>76</td>
-                                    <td>$8756.00</td>
-                                    <td>{{ "$%.2f"|format(event.extra_charges) }}</td>
+                                    <td>{{ item.active_participants }}</td>
+                                    <td>{{ item.active_case_splits }}</td>
+                                    <td>{{ item.total_cases }}</td>
+                                    <td>{{ "$%.2f"|format(item.event_total) }}</td>
+                                    <td>{{ "$%.2f"|format(item.event.extra_charges) }}</td>
                                 </tr>
                             </tbody>
                         </table>

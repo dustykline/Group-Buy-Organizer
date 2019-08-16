@@ -1,6 +1,6 @@
 from flask import request
 from flask_wtf import FlaskForm
-from wtforms import DecimalField, IntegerField, SelectField, StringField, SubmitField
+from wtforms import DecimalField, IntegerField, SelectField, StringField, SubmitField, TextAreaField
 from wtforms.validators import InputRequired, DataRequired, ValidationError
 
 from groupbuyorganizer.events.models import Event, Item
@@ -13,6 +13,11 @@ class CreateEventForm(FlaskForm):
         event = Event.query.filter_by(name=event_name.data).first()
         if event:
             raise ValidationError('That event name is taken. Please choose a different one.')
+
+
+class EventNotesForm(FlaskForm):
+    event_notes = TextAreaField('Event Notes')
+    submit = SubmitField('Submit')
 
 
 class EventExtraChargeForm(FlaskForm):
@@ -32,6 +37,7 @@ class CreateItemForm(FlaskForm):
         if item:
             raise ValidationError('That item name is taken. Please choose a different one.')
 
+
 class EditItemForm(FlaskForm):
     item_name = StringField('Item Name', validators=[DataRequired()])
     price = DecimalField('Price of Item ($)', validators=[DataRequired()])
@@ -39,9 +45,15 @@ class EditItemForm(FlaskForm):
     category_id = SelectField('Select Item Category', coerce=int, validators=[InputRequired()])
     submit = SubmitField('Submit')
 
+
 class CaseQuantityOrderForm(FlaskForm):
     choicesList = []
     for i in range(100):
         choicesList.append((i, i))
     quantity = SelectField('Cases To Order', coerce=int, choices=choicesList)
+    submit = SubmitField('Update')
+
+
+class CreateCaseSplitForm(FlaskForm):
+    piece_quantity = SelectField('Cases To Order', coerce=int)
     submit = SubmitField('Update')

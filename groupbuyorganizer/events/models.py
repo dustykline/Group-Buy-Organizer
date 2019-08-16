@@ -10,6 +10,7 @@ class Event(database.Model):
     is_locked = database.Column(database.Boolean, nullable=False, default=False)
     is_closed = database.Column(database.Boolean, nullable=False, default=False)
     extra_charges = database.Column(database.Numeric(precision=2), nullable=False, default=0.00)
+    added_by = database.Column(database.Integer, database.ForeignKey('user.id'), nullable=False)
     items = database.relationship('Item', backref='event', cascade='all, delete-orphan')
 
 
@@ -21,6 +22,7 @@ class Item(database.Model):
     category_id = database.Column(database.Integer, database.ForeignKey('category.id'), nullable=False)
     event_id = database.Column(database.Integer, database.ForeignKey('event.id'), nullable=False)
     added_by = database.Column(database.Integer, database.ForeignKey('user.id'), nullable=False)
+    case_buys = database.relationship('CaseBuy', backref='item', cascade='all, delete-orphan')
 
 
 class CaseBuy(database.Model):

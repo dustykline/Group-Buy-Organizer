@@ -1,5 +1,29 @@
 {% extends "primary.html" %}
 {% block content %}
+    <div class="alert alert-info mx-auto">
+        <p>This is an admin-only area where you can make changes to the event.  Feel free to make a test event and mess
+        around with it to become more comfortable with the app.</p>
+        <p class="font-weight-bold">Event notes:</p>
+        <p>This is a text field that appears on the top of the event page as a colored
+        alert, visible to all users.  You can use this to post inportant information about the group buy, deadlines, etc.</p>
+        <p class="font-weight-bold">Added charges:</p>
+        <p>If you have any associated charges with the group buy to be distributed
+        amongst the active group buy users, this is where you add it.  One such example could be the shipping cost, gas
+        cost of transporting, etc.  It will distribute the cost amongst users proportionally to the size of their order,
+        so smaller orders will pay less while larger ones pay more.  Lets say the total order is $1000, your added
+        charges total to $100, and a given user's total is $150.  Since his order is 15% the total cost of the group
+        buy, he will pay for 15% of that added fee, which comes out to $15.</p>
+        <p class="font-weight-bold">Locking event:</p>
+        <p>This will lock in all current case orders and case splits, and prevent any additions, changes
+        or deletions.  Adding new items will be restricted as well.  If you unlock it, changes from the users will be
+        allowed again.  Use this if you're wrapping up the event, or otherwise are encountering any problems.</p>
+        <p class="font-weight-bold">Closing event:</p>
+        <p>This is simply a way to show the userbase that an event has officially concluded.  Just like
+        locking an event, nothing can be changed.</p>
+        <p class="font-weight-bold">Deleting event:</p>
+        <p>As it states, the event gets removed.  All items, case buys, and case splits get removed as
+        well.  Categories remain unaffected.  Please be aware that this is a permanent action.  Once its gone, its gone!</p>
+    </div>
     <div class="container mt-5">
         <form method="POST" action="">
             {{ event_name_form.hidden_tag() }}
@@ -21,12 +45,24 @@
             </div>
         </form>
     </div>
+    <h3 class="container mt-5 border-bottom">Event Notes</h3>
+    <div class="container">
+        <form method="POST" action="">
+            {{ event_notes_form.hidden_tag() }}
+            <div class="form-group">
+                {{ event_notes_form.event_notes(class="form-control textarea") }}
+            </div>
+            <div class="form-group">
+                {{ event_notes_form.submit(class="btn btn-outline-info") }}
+            </div>
+        </form>
+    </div>
     <h3 class="container mt-5 border-bottom">Event Configuration</h3>
     <div class="container">
         <table class="table mt-3">
                             <thead>
                             <tr>
-                                <th scope="col">Extra Charges ($)</th>
+                                <th scope="col">Added Charges ($)</th>
                                 <th scope="col">Toggle Lock?</th>
                                 <th scope="col">Close Group Buy?</th>
                             </tr>
@@ -67,7 +103,7 @@
     </div>
     <h3 class="container mt-5 border-bottom">Danger Zone</h3>
     <div class="container">
-        <button type="button" class="btn btn-outline-danger mb-5" data-toggle="modal" data-target="#warningModal">
+        <button type="button" class="btn btn-outline-danger mb-5 mt-1" data-toggle="modal" data-target="#warningModal">
             Delete Event
         </button>
     </div>
