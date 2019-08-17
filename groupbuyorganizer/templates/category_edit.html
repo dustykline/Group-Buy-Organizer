@@ -1,5 +1,13 @@
 {% extends "primary.html" %}
 {% block content %}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('general.home') }}">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Admin</li>
+            <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('admin.category_settings') }}">Category Settings</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit Category Name</li>
+        </ol>
+    </nav>
     <div class="container mt-5">
         <form method="POST" action="">
             {{ form.hidden_tag() }}

@@ -1,5 +1,18 @@
 {% extends "primary.html" %}
+
+{% set registration_enabled_primary = registration_enabled %}
+
 {% block content %}
+    {% if current_user.is_authenticated %}
+    <div class="container border-bottom mt-5 mb-3">
+        <h2>Event List:</h2>
+    </div>
+    <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item active" aria-current="page">Home</li>
+            </ol>
+    </nav>
+    {% endif %}
     <div class="container mt-5">
     {% if current_user.is_authenticated %}
         {% if current_user.is_admin %}
@@ -27,7 +40,6 @@
         {% endif %}
     </div>
         {% if events %}
-            <h1 class="mt-5">Event List:</h1>
             {% for item in home_event_list %}
                 {% if not item.event.is_locked %}
                     <div class="card mt-5 border border-success">
@@ -98,7 +110,7 @@
             <p class="text-center">Please login or create an account to gain access to the available group buys!</p>
         {% elif not registration_enabled %}
             <p class="text-center">Administrators have disabled new registrations!  If you already have an account, you
-                may log in!</p>
+                may log in.</p>
         {% elif not root_created %}
             <p class="text-center">If you are seeing this, your application has been successfully set up!  Please
                 register and create a new account; the first account created will have root access.  All other

@@ -1,5 +1,12 @@
 {% extends "primary.html" %}
 {% block content %}
+    <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('general.home') }}">Home</a></li>
+                <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('events.event', event_id=event.id) }}">{{ event.name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit</li>
+            </ol>
+    </nav>
     <div class="alert alert-info mx-auto">
         <p>This is an admin-only area where you can make changes to the event.  Feel free to make a test event and mess
         around with it to become more comfortable with the app.</p>

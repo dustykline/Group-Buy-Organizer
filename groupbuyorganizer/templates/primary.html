@@ -21,16 +21,11 @@
         <span class="navbar-toggler-icon"></span></button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
-                <li class="nav-item active">
-                    <a class="nav-link" href="{{ url_for('general.about') }}">About <span class="sr-only">(current)</span></a>
+                <li>
+                    <a class="nav-link" href="{{ url_for('general.about') }}">About<span class="sr-only">(current)</span></a>
                 </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
-                       data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Help</a>
-                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                    <a class="dropdown-item" href="#">User Help</a>
-                    <a class="dropdown-item" href="#">Admin Help</a>
-                    </div>
+                <li>
+                    <a class="nav-link" href="{{ url_for('general.help') }}">Help<span class="sr-only">(current)</span></a>
                 </li>
             </ul>
         </div>
@@ -52,7 +47,11 @@
                 <a class="nav-item nav-link" href="{{ url_for('general.logout') }}">Logout</a>
             {% else %}
                 <a class="nav-item nav-link" href="{{ url_for('general.login') }}">Login</a>
-                <a class="nav-item nav-link" href="{{ url_for('general.register') }}">Register</a>
+                {% if registration_enabled_primary %}
+                    <a class="nav-item nav-link" href="{{ url_for('general.register') }}">Register</a>
+                {% else %}
+                    <a class="nav-item nav-link disabled" href="#">Register</a>
+                {% endif %}
             {% endif %}
         </div>
     </nav>
@@ -71,7 +70,7 @@
             {% endif %}
         {% endwith %}
         {% if title %}
-            <div class="container border-bottom mt-5 mb-5">
+            <div class="container border-bottom mt-5 mb-3">
                 <h2>{{ title }}</h2>
             </div>
         {% endif %}

@@ -4,16 +4,16 @@ from flask_login import current_user, login_required
 from groupbuyorganizer import database
 from groupbuyorganizer.admin.models import Category, User
 from groupbuyorganizer.admin.utilities import admin_check
-from groupbuyorganizer.events.forms import CreateItemForm, CreateEventForm, CaseQuantityOrderForm, EditItemForm, \
-    EventExtraChargeForm, EventNotesForm
-from groupbuyorganizer.events.models import CaseBuy, Event, Item
-from groupbuyorganizer.events.utilities import StructuredItemList
+from groupbuyorganizer.events.forms import CreateItemForm, CaseSplitForm, CreateEventForm, CaseQuantityOrderForm,\
+    EditItemForm, EventExtraChargeForm, EventNotesForm
+from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Event, Item
+from groupbuyorganizer.events.utilities import EventItem, StructuredItemList
 
 
 events = Blueprint('events', __name__)
 
-@events.route('/events/<int:event_id>', methods=['GET', 'POST'])
-@events.route('/events/<int:event_id>/items', methods=['GET', 'POST'])
+@events.route('/events/<int:event_id>/items/', methods=['GET', 'POST'])
+@events.route('/events/<int:event_id>/', methods=['GET', 'POST'])
 @login_required
 def event(event_id):
 
@@ -148,38 +148,62 @@ def item(event_id, item_id):
     # Case Quantity Form
     order_case_form = CaseQuantityOrderForm()
 
-    print(current_user.id)
+    # Create Case Splits
+    create_case_split_form = CaseSplitForm()
+    choicesList = []
+    for i in range(item.packing - 1):
+        choicesList.append((i + 1, i + 1))
+    create_case_split_form.piece_quantity.choices = choicesList
+
+    # Customized item/order view
+    event_item = EventItem(item)
+
+    # # test #todo- no longer needed?
+    # for case_split in item.case_splits:
+    #     print(case_split)
 
     if edit_item_form.validate_on_submit():
         item.name = edit_item_form.item_name.data
         item.category_id = edit_item_form.category_id.data
         item.price = edit_item_form.price.data
+        if item.packing != edit_item_form.packing.data:
+            pass #todo clear all splits
         item.packing = edit_item_form.packing.data
         database.session.commit()
         flash('Item successfully added!', 'success')
         return redirect(url_for('events.event', event_id=event_id))
 
     elif order_case_form.validate_on_submit():
-        previous_order = CaseBuy.query.filter_by(user_id=current_user.id, event_id=event_id).first()
+        previous_order = CaseBuy.query.filter_by(user_id=current_user.id, event_id=event_id, item_id=item.id).first()
         if not previous_order:
             case_buy = CaseBuy(user_id=current_user.id, event_id=event_id, item_id=item_id,
                                quantity=order_case_form.quantity.data)
             database.session.add(case_buy)
             database.session.commit()
             flash('Case order for item added!', 'success')
-            return redirect(url_for('events.event', event_id=event_id))
+            return redirect(url_for('events.item', event_id=event_id, item_id=item.id))
         else:
             if order_case_form.quantity.data == 0:
                 database.session.delete(previous_order)
                 database.session.commit()
                 flash('Case(s) removed from your order!', 'info')
-                return redirect(url_for('events.event', event_id=event_id))
+                return redirect(url_for('events.item', event_id=event_id, item_id=item.id))
             else:
                 previous_order.quantity = order_case_form.quantity.data
                 database.session.commit()
                 flash('Case quantity updated!', 'info')
-                return redirect(url_for('events.event', event_id=event_id))
+                return redirect(url_for('events.item', event_id=event_id, item_id=item.id))
 
+    elif create_case_split_form.validate_on_submit():
+        case_split = CaseSplit(started_by=current_user.id, event_id=event.id, item_id=item.id, is_complete=False)
+        database.session.add(case_split)
+        database.session.commit()
+        case_piece_commit = CasePieceCommit(case_split_id=case_split.id, user_id=current_user.id,
+                                            pieces_committed=create_case_split_form.piece_quantity.data)
+        database.session.add(case_piece_commit)
+        database.session.commit()
+        flash('Case split created!', 'success')
+        return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
 
     elif request.method == 'GET':
         edit_item_form.category_id.choices = categories_list
@@ -188,14 +212,15 @@ def item(event_id, item_id):
         edit_item_form.price.data = item.price
         edit_item_form.packing.data = item.packing
 
-        previous_order = CaseBuy.query.filter_by(user_id=current_user.id, event_id=event_id).first()
+        #populating current case buy quantity, if any
+        previous_order = CaseBuy.query.filter_by(user_id=current_user.id, event_id=event_id, item_id=item.id).first()
         if previous_order:
             order_case_form.quantity.data = previous_order.quantity
 
 
     return render_template('item.html', added_by_user=added_by_user, form=edit_item_form,
-                           order_case_form=order_case_form, event=event, item=item,
-                           title=f'{item.name} Overview')
+                           order_case_form=order_case_form, event=event, item=event_item,
+                           create_case_split_form=create_case_split_form, title=f'{item.name} Overview')
 
 @events.route('/events/<int:event_id>/items/<int:item_id>/remove/', methods=['GET'])
 @login_required
@@ -203,8 +228,19 @@ def remove_item(event_id, item_id):
     admin_check(current_user)
     event = Event.query.get_or_404(event_id)
     item = Item.query.get_or_404(item_id)
-    # case_buys = CaseBuy.query.filter_by(item_id=item.id)
     database.session.delete(item)
     database.session.commit()
     flash('Item successfully removed!', 'info')
     return redirect(url_for('events.event', event_id=event_id))
+
+@events.route('/events/<int:event_id>/event_total/')
+@login_required
+def event_total(event_id):
+    event = Event.query.get_or_404(event_id)
+    return render_template('event_total.html', event=event, title='Event Total')
+
+@events.route('/events/<int:event_id>/event_total_user_breakdown/')
+@login_required
+def event_total_user_breakdown(event_id):
+    event = Event.query.get_or_404(event_id)
+    return render_template('event_total_user_breakdown.html', event=event, title='Event Total')

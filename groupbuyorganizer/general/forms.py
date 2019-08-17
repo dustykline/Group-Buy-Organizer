@@ -35,8 +35,8 @@ class LoginForm(FlaskForm):
 class UserOptionsForm(FlaskForm):
     '''This field is used to register new accounts'''
 
-    username = StringField('Username', validators=[DataRequired(), Length(min=2, max=20)])
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    username = StringField('Username (displayed to other users)', validators=[DataRequired(), Length(min=2, max=20)])
+    email = StringField('Email (used for logging in)', validators=[DataRequired(), Email()])
     submit = SubmitField('Update')
 
     def validate_username(self, username):

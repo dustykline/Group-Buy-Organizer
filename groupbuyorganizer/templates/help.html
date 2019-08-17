@@ -1,0 +1,15 @@
+{% extends "primary.html" %}
+{% block content %}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('general.home') }}">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Help</li>
+        </ol>
+    </nav>
+    <div class="alert alert-info mx-auto mt-4 mb-4">
+        <p>Please watch this video to see how the app works.  User functionality is covered first, by admin usage.</p>
+    </div>
+    <div class="embed-responsive embed-responsive-16by9 mb-5">
+        <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/VbxgYlcNxE8?rel=0" allowfullscreen></iframe>
+    </div>
+{% endblock content %}

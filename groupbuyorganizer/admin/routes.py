@@ -23,7 +23,8 @@ def category_settings():
         database.session.commit()
         flash('Category successfully added!', 'success')
         return redirect(url_for('admin.category_settings'))
-    categories = Category.query.order_by(Category.name.asc()).all()
+    elif request.method == 'GET':
+        categories = Category.query.order_by(Category.name.asc()).all()
     return render_template('category_settings.html', title='Category Settings', categories=categories, form=form)
 
 

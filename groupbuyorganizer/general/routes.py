@@ -30,7 +30,7 @@ def home():
         flash('Event created!', 'success')
         return redirect(url_for('general.home'))
     return render_template('home.html', root_created = instance.root_created, home_event_list=home_event_list,
-                           registration_enabled = instance.registration_enabled, events=events, form=form)
+                           registration_enabled = instance.registration_enabled, events=events, form=form, c=5)
 
 
 @general.route("/about/")
@@ -41,7 +41,9 @@ def about():
 @general.route("/register/", methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
+        flash('You are already logged in!', 'info')
         return redirect(url_for('general.home'))
+    instance = Instance.query.first()
     form = RegistrationForm()
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
@@ -58,11 +60,13 @@ def register():
         database.session.add(user)
         database.session.commit()
         return redirect(url_for('general.login'))
-    return render_template('register.html', title='Join Today', form=form)
+    return render_template('register.html', title='Join Today', form=form,
+                           registration_enabled=instance.registration_enabled)
 
 
 @general.route("/login/", methods=['GET', 'POST'])
 def login():
+    instance = Instance.query.first()
     if current_user.is_authenticated:
         return redirect(url_for('general.home'))
     form = LoginForm()
@@ -77,7 +81,7 @@ def login():
             return redirect(next_page) if next_page else redirect(url_for('general.home'))
         else:
             flash('Login Unsuccessful. Please check email and password', 'danger')
-    return render_template('login.html', title='Log In', form=form)
+    return render_template('login.html', title='Log In', form=form, registration_enabled=instance.registration_enabled)
 
 
 @general.route("/logout/")
@@ -145,10 +149,6 @@ def reset_token(token):
         return redirect(url_for('general.login'))
     return render_template('reset_token.html', title='Reset Password', form=form)
 
-@general.route("/userhelp/")
-def userhelp():
-    return render_template('userhelp.html', title='User Help')
-
-@general.route("/adminhelp/")
-def adminhelp():
-    return render_template('adminhelp.html', title='Admin Help')
+@general.route("/help/")
+def help():
+    return render_template('help.html', title='Help')

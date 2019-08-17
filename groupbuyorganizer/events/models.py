@@ -11,7 +11,7 @@ class Event(database.Model):
     is_closed = database.Column(database.Boolean, nullable=False, default=False)
     extra_charges = database.Column(database.Numeric(precision=2), nullable=False, default=0.00)
     added_by = database.Column(database.Integer, database.ForeignKey('user.id'), nullable=False)
-    items = database.relationship('Item', backref='event', cascade='all, delete-orphan')
+    items = database.relationship('Item', backref='event', cascade='all, delete-orphan', lazy='dynamic')
 
 
 class Item(database.Model):
@@ -22,7 +22,8 @@ class Item(database.Model):
     category_id = database.Column(database.Integer, database.ForeignKey('category.id'), nullable=False)
     event_id = database.Column(database.Integer, database.ForeignKey('event.id'), nullable=False)
     added_by = database.Column(database.Integer, database.ForeignKey('user.id'), nullable=False)
-    case_buys = database.relationship('CaseBuy', backref='item', cascade='all, delete-orphan')
+    case_buys = database.relationship('CaseBuy', backref='item', cascade='all, delete-orphan', lazy='dynamic')
+    case_splits = database.relationship('CaseSplit', backref='item', cascade='all, delete-orphan', lazy='dynamic')
 
 
 class CaseBuy(database.Model):
@@ -33,6 +34,24 @@ class CaseBuy(database.Model):
     quantity = database.Column(database.Integer, nullable=False)
 
 
+class CaseSplit(database.Model):
+    id = database.Column(database.Integer, primary_key=True)
+    started_by = database.Column(database.Integer, database.ForeignKey('user.id'), nullable=False)
+    date_created = database.Column(database.DateTime, nullable=False, default=datetime.utcnow)
+    event_id = database.Column(database.Integer, database.ForeignKey('event.id'), nullable=False)
+    item_id = database.Column(database.Integer, database.ForeignKey('item.id'), nullable=False)
+    is_complete = database.Column(database.Boolean, nullable=False, default=False)
+    commits = database.relationship('CasePieceCommit', backref='case_split', cascade='all, delete-orphan', lazy='dynamic')
+
+
+class CasePieceCommit(database.Model):
+    id = database.Column(database.Integer, primary_key=True)
+    committed_on = database.Column(database.DateTime, nullable=False, default=datetime.utcnow)
+    case_split_id = database.Column(database.Integer, database.ForeignKey('case_split.id'), nullable=False)
+    user_id = database.Column(database.Integer, database.ForeignKey('item.id'), nullable=False)
+    pieces_committed = database.Column(database.Integer, nullable=False)
+
+
 # haspaid = database.Table('has_paid',
 #              database.Column
 #                          )
@@ -40,12 +59,3 @@ class CaseBuy(database.Model):
 # class HasPaid: #table
 #     user_id = 0
 #     event_id = 0
-
-
-class CaseSplit: #table?
-    id = 0
-    user_id = 0
-    event_id = 0
-    item_id = 0
-    quantity = 0
-    is_complete = bool

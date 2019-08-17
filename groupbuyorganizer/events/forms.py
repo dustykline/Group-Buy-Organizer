@@ -54,6 +54,6 @@ class CaseQuantityOrderForm(FlaskForm):
     submit = SubmitField('Update')
 
 
-class CreateCaseSplitForm(FlaskForm):
-    piece_quantity = SelectField('Cases To Order', coerce=int)
-    submit = SubmitField('Update')
+class CaseSplitForm(FlaskForm):
+    piece_quantity = SelectField('Case Pieces Requested', coerce=int)
+    submit = SubmitField('Submit')
