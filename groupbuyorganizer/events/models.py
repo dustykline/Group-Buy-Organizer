@@ -12,6 +12,7 @@ class Event(database.Model):
     extra_charges = database.Column(database.Numeric(precision=2), nullable=False, default=0.00)
     added_by = database.Column(database.Integer, database.ForeignKey('user.id'), nullable=False)
     items = database.relationship('Item', backref='event', cascade='all, delete-orphan', lazy='dynamic')
+    # case_buys = database.relationship('CaseBuy', backref='event', lazy='dynamic')
 
 
 class Item(database.Model):

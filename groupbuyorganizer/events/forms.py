@@ -57,3 +57,7 @@ class CaseQuantityOrderForm(FlaskForm):
 class CaseSplitForm(FlaskForm):
     piece_quantity = SelectField('Case Pieces Requested', coerce=int)
     submit = SubmitField('Submit')
+
+
+class RemoveUserFromEventForm(FlaskForm):
+    pass

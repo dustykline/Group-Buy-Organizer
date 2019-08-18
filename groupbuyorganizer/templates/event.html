@@ -16,7 +16,7 @@
                 <a class="btn btn-outline-success m-1" href="{{ url_for('events.event_total', event_id=event.id) }}" role="button">Event Order Total</a>
                 <a class="btn btn-outline-success m-1" href="{{ url_for('events.event_total_user_breakdown', event_id=event.id) }}" role="button">User Breakdown</a>
                 <a class="btn btn-outline-secondary m-1" href="{{ url_for('events.event_edit', event_id=event.id) }}" role="button">Edit Event</a>
-                todo- del user- form + route
+                inline form here
                 {% if event.is_locked %}
                     <a class="btn btn-outline-info m-1" href="{{ url_for('events.event_edit', event_id=event.id) }}" role="button">Manage Payments</a>
                 {% endif %}

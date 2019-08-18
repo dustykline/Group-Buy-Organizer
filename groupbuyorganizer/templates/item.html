@@ -184,11 +184,19 @@
             {% else %}
                 <h3>{{ item.case_splits.active_splits|length }} Active Case Splits</h3>
             {% endif %}
+            <hr>
             {% for active_split in item.case_splits.active_splits %}
-                <div class="card mb-5 mt-5">
+                <div class="card border border-success mb-5 mt-5">
                     <div class="card-header">
-                        <h3 class="card-title">Edit Item</h3>
-                        <h6 class="card-subtitle mb-2 text-muted">This form is only visible to administrators.</h6>
+                        <h3 class="card-title">{{ item.packing - active_split[0].pieces_available }} / {{ item.packing }} pieces reserved</h3>
+                        <h6 class="card-subtitle mb-2 text-muted">Added by {{ active_split[1].username }}</h6>
+                    </div>
+                    <div class="card-header">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped bg-success" role="progressbar" style="width: {{
+                                    ((item.packing - active_split[0].pieces_available)/item.packing)*100 }}%">{{ item.packing
+                                    - active_split[0].pieces_available }} / {{ item.packing }}</div>
+                        </div>
                     </div>
                 </div>
             {% endfor %}
@@ -203,7 +211,8 @@
             {% if item.case_splits.complete_splits == 1 %}
                 <h3>1 Complete Case Split</h3>
             {% else %}
-                <h3>{{ item.case_splits.complete_splits|length }} Active Case Splits</h3>
+                <h3>{{ item.case_splits.complete_splits|length }} Complete Case Splits</h3>
+            <hr>
             {% endif %}
             {% for active_split in item.case_splits.active_splits %}
             {% endfor %}

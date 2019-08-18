@@ -66,7 +66,7 @@ class CaseSplitGroup:
         reversed_list = sorted(self.case_splits, key=lambda x: x.id, reverse=True)
         for case_split in reversed_list:
             object_wrapper = CaseSplitItem(case_split, self.packing)
-            created_by = database.session.query(User.username).filter_by(id=case_split.id).first()
+            created_by = database.session.query(User.username).filter_by(id=case_split.started_by).first()
             list_tuple = (object_wrapper, created_by)
             if case_split.is_complete == True:
                 self.complete_splits.append(list_tuple)
@@ -107,6 +107,7 @@ def get_pieces_available_split_item(case_split, packing):
     '''
 
     pieces_left = packing
+
     for commit in case_split:
-        packing -= commit.pieces_committed
+        pieces_left -= commit.pieces_committed
     return pieces_left

@@ -5,7 +5,7 @@ from groupbuyorganizer import database
 from groupbuyorganizer.admin.models import Category, User
 from groupbuyorganizer.admin.utilities import admin_check
 from groupbuyorganizer.events.forms import CreateItemForm, CaseSplitForm, CreateEventForm, CaseQuantityOrderForm,\
-    EditItemForm, EventExtraChargeForm, EventNotesForm
+    EditItemForm, EventExtraChargeForm, EventNotesForm, RemoveUserFromEventForm
 from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Event, Item
 from groupbuyorganizer.events.utilities import EventItem, StructuredItemList
 
@@ -23,6 +23,16 @@ def event(event_id):
     categories_list = [(piece.id, piece.name) for piece in available_categories]
     form = CreateItemForm()
     form.category_id.choices = categories_list
+
+    # Remove user from event form
+    remove_user_from_event_form = RemoveUserFromEventForm()
+    case_buy_users = database.session.query(User).filter(CaseBuy.event_id == event.id, User.id == CaseBuy.user_id).all()
+    case_split_users = database.session.query(User).filter(CaseSplit.event_id == event.id, CasePieceCommit.case_split_id == CaseSplit.id,
+                        User.id == CasePieceCommit.user_id).all()
+    print(case_buy_users)
+    print(case_split_users)
+
+
 
     #Items Setup
     items = database.session.query(Item, Category.name).filter_by(event_id=event.id).join(Category, Item.category_id
@@ -136,6 +146,8 @@ def item(event_id, item_id):
     event = Event.query.get_or_404(event_id)
     item = Item.query.get_or_404(item_id)
 
+#.    items = database.session.query(Item, Category.name).filter_by(event_id=event.id).join(Category, Item.category_id
+                                                            #== Category.id).order_by(Category.name, Item.name).all()
     # Item edit form
     available_categories = Category.query.order_by('name')
     categories_list = [(piece.id, piece.name) for piece in available_categories]
@@ -158,9 +170,6 @@ def item(event_id, item_id):
     # Customized item/order view
     event_item = EventItem(item)
 
-    # # test #todo- no longer needed?
-    # for case_split in item.case_splits:
-    #     print(case_split)
 
     if edit_item_form.validate_on_submit():
         item.name = edit_item_form.item_name.data
@@ -239,8 +248,40 @@ def event_total(event_id):
     event = Event.query.get_or_404(event_id)
     return render_template('event_total.html', event=event, title='Event Total')
 
-@events.route('/events/<int:event_id>/event_total_user_breakdown/')
+@events.route('/events/<int:event_id>/event_total_user_breakdown/', methods=['GET'])
 @login_required
 def event_total_user_breakdown(event_id):
     event = Event.query.get_or_404(event_id)
     return render_template('event_total_user_breakdown.html', event=event, title='Event Total')
+
+@events.route('/events/<int:event_id>/items/<int:item_id>/case_split/<int:case_split_id>/remove/')
+@login_required
+def remove_case_split(event_id, item_id, case_split_id):
+    event = Event.query.get_or_404(event_id)
+    item = Item.query.get_or_404(item_id)
+    case_split = CaseSplit.query.get_or_404(case_split_id)
+    if case_split.started_by == current_user.id or current_user.is_admin:
+        database.session.delete(case_split)
+        database.session.commit()
+        flash('Case split!', 'info')
+        return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
+    else:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
+
+@events.route('/events/<int:event_id>/items/<int:item_id>/case_split/<int:case_split_id>/commit/<int:commit_id>/remove',
+    methods=['GET'])
+@login_required
+def remove_case_split_commit(event_id, item_id, case_split_id, commit_id):
+    event = Event.query.get_or_404(event_id)
+    item = Item.query.get_or_404(item_id)
+    case_split = CaseSplit.query.get_or_404(case_split_id)
+    commit = CasePieceCommit.query.get_or_404(commit_id)
+    if commit.user_id == current_user.id or current_user.is_admin:
+        database.session.delete(commit)
+        database.session.commit()
+        flash('Case split commit removed!', 'info')
+        return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
+    else:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
