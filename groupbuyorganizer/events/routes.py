@@ -17,7 +17,7 @@ events = Blueprint('events', __name__)
 @login_required
 def event(event_id):
 
-    # Form Setup
+    # Item add form setup
     event = Event.query.get_or_404(event_id)
     available_categories = Category.query.order_by('name')
     categories_list = [(piece.id, piece.name) for piece in available_categories]
@@ -26,13 +26,19 @@ def event(event_id):
 
     # Remove user from event form
     remove_user_from_event_form = RemoveUserFromEventForm()
-    case_buy_users = database.session.query(User).filter(CaseBuy.event_id == event.id, User.id == CaseBuy.user_id).all()
-    case_split_users = database.session.query(User).filter(CaseSplit.event_id == event.id, CasePieceCommit.case_split_id == CaseSplit.id,
+    case_buy_users = database.session.query(User.id, User.username).filter(CaseBuy.event_id == event.id, User.id == CaseBuy.user_id).all()
+    case_split_users = database.session.query(User.id, User.username).filter(CaseSplit.event_id == event.id, CasePieceCommit.case_split_id == CaseSplit.id,
                         User.id == CasePieceCommit.user_id).all()
-    print(case_buy_users)
-    print(case_split_users)
-
-
+    case_buy_set = set(case_buy_users)
+    case_split_set = set(case_split_users)
+    total_user_set = set()
+    for user in case_buy_set:
+        total_user_set.add(user)
+    for user in case_split_set:
+        total_user_set.add(user)
+    total_event_users = list(total_user_set)
+    total_event_users.sort(key=lambda x: x[1])
+    remove_user_from_event_form.user_to_remove.choices = total_event_users
 
     #Items Setup
     items = database.session.query(Item, Category.name).filter_by(event_id=event.id).join(Category, Item.category_id
@@ -41,7 +47,7 @@ def event(event_id):
     if items:
         structured_item_list = StructuredItemList(items)
 
-    if form.validate_on_submit():
+    if form.validate_on_submit() and form.item_name.data:
         item = Item(name=form.item_name.data, price=form.price.data, packing=form.packing.data,
                     category_id=form.category_id.data, added_by=current_user.get_id(), event_id=event_id)
         database.session.add(item)
@@ -49,8 +55,36 @@ def event(event_id):
         flash('Item successfully added!', 'success')
         return redirect(url_for('events.event', event_id=event_id))
 
+    # previous_order = CaseBuy.query.filter_by(user_id=current_user.id, event_id=event_id, item_id=item.id).first()
+    if remove_user_from_event_form.validate_on_submit():
+        active_user = User.query.filter_by(id=remove_user_from_event_form.user_to_remove.data).first()
+        case_buys = CaseBuy.query.filter_by(event_id=event_id, user_id=active_user.id).all()
+        for case_buy in case_buys:
+            database.session.delete(case_buy)
+        case_piece_commits = CasePieceCommit.query.filter_by(user_id=active_user.id, event_id=event_id).all()
+        case_piece_commit_ids = []
+        for case_piece_commit in case_piece_commits:
+            case_piece_commit_ids.append(case_piece_commit.id)
+            database.session.delete(case_piece_commit)
+            database.session.commit()
+        affected_case_splits = database.session.query(CaseSplit).filter(CaseSplit.id.in_(case_piece_commit_ids)).all()
+
+        # Removing case splits when user was only partipants, and changing the rest to is_complete=False if they were
+        # initially marked as complete.
+        for case_split in affected_case_splits:
+            if not case_split.commits:
+                database.session.delete(case_split)
+            else:
+                if case_split.is_complete == True:
+                    case_split.is_complete = False
+
+        database.session.commit()
+        flash(f'All transactions for {active_user.username} successfully removed from event!', 'info')
+        return redirect(url_for('events.event', event_id=event_id))
+
     return render_template('event.html', event=event, form=form, title=f'{event.name} Overview',
-                           structured_item_list=structured_item_list)
+                           structured_item_list=structured_item_list,
+                           remove_user_from_event_form=remove_user_from_event_form)
 
 
 @events.route('/events/<int:event_id>/edit', methods=['GET', 'POST'])
@@ -146,8 +180,6 @@ def item(event_id, item_id):
     event = Event.query.get_or_404(event_id)
     item = Item.query.get_or_404(item_id)
 
-#.    items = database.session.query(Item, Category.name).filter_by(event_id=event.id).join(Category, Item.category_id
-                                                            #== Category.id).order_by(Category.name, Item.name).all()
     # Item edit form
     available_categories = Category.query.order_by('name')
     categories_list = [(piece.id, piece.name) for piece in available_categories]
@@ -169,6 +201,9 @@ def item(event_id, item_id):
 
     # Customized item/order view
     event_item = EventItem(item)
+
+    # Modify item quantity in case split form
+    modify_split_qty_form = CaseSplitForm()
 
 
     if edit_item_form.validate_on_submit():
@@ -207,7 +242,7 @@ def item(event_id, item_id):
         case_split = CaseSplit(started_by=current_user.id, event_id=event.id, item_id=item.id, is_complete=False)
         database.session.add(case_split)
         database.session.commit()
-        case_piece_commit = CasePieceCommit(case_split_id=case_split.id, user_id=current_user.id,
+        case_piece_commit = CasePieceCommit(case_split_id=case_split.id, user_id=current_user.id, event_id=event_id,
                                             pieces_committed=create_case_split_form.piece_quantity.data)
         database.session.add(case_piece_commit)
         database.session.commit()

@@ -45,7 +45,7 @@ class EventItem:
         self.your_total = self.get_total()
 
     def get_cases_reserved(self):
-        cases_reserved = CaseBuy.query.filter_by(item_id=self.item.id).first()
+        cases_reserved = CaseBuy.query.filter_by(item_id=self.item.id, user_id=current_user.id).first()
         if cases_reserved is None:
             return 0
         return cases_reserved.quantity
@@ -77,6 +77,7 @@ class CaseSplitGroup:
         return len(self.active_splits)
 
     def how_many_pieces_locked_in(self):
+        return 0
         if self.complete_splits:
             for complete_split in self.complete_splits:
                 if complete_split.commits.user_id == 1: #todo

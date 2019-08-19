@@ -60,4 +60,5 @@ class CaseSplitForm(FlaskForm):
 
 
 class RemoveUserFromEventForm(FlaskForm):
-    pass
+    user_to_remove = SelectField("Remove User's Transactions From Event", coerce=int)
+    submit = SubmitField("Remove")

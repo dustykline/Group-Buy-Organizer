@@ -16,7 +16,18 @@
                 <a class="btn btn-outline-success m-1" href="{{ url_for('events.event_total', event_id=event.id) }}" role="button">Event Order Total</a>
                 <a class="btn btn-outline-success m-1" href="{{ url_for('events.event_total_user_breakdown', event_id=event.id) }}" role="button">User Breakdown</a>
                 <a class="btn btn-outline-secondary m-1" href="{{ url_for('events.event_edit', event_id=event.id) }}" role="button">Edit Event</a>
-                inline form here
+                {% if remove_user_from_event_form.user_to_remove.choices %}
+                    <form class="form-inline float-right" method="POST">
+                        {{ remove_user_from_event_form.hidden_tag() }}
+                        <div class="input-group mb-2 mr-sm-2">
+                            {{ remove_user_from_event_form.user_to_remove.label(class="form-control-label mr-3") }}
+                            {{ remove_user_from_event_form.user_to_remove(class_="form-control") }}
+                        </div>
+                        <div class="form-check mb-2 mr-sm-2">
+                            {{ remove_user_from_event_form.submit(class="btn btn-outline-warning") }}
+                        </div>
+                    </form>
+                {% endif %}
                 {% if event.is_locked %}
                     <a class="btn btn-outline-info m-1" href="{{ url_for('events.event_edit', event_id=event.id) }}" role="button">Manage Payments</a>
                 {% endif %}

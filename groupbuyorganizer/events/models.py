@@ -42,12 +42,13 @@ class CaseSplit(database.Model):
     event_id = database.Column(database.Integer, database.ForeignKey('event.id'), nullable=False)
     item_id = database.Column(database.Integer, database.ForeignKey('item.id'), nullable=False)
     is_complete = database.Column(database.Boolean, nullable=False, default=False)
-    commits = database.relationship('CasePieceCommit', backref='case_split', cascade='all, delete-orphan', lazy='dynamic')
+    commits = database.relationship('CasePieceCommit', backref='case_split', cascade='all, delete-orphan')
 
 
 class CasePieceCommit(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     committed_on = database.Column(database.DateTime, nullable=False, default=datetime.utcnow)
+    event_id = database.Column(database.Integer, database.ForeignKey('event.id'), nullable=False)
     case_split_id = database.Column(database.Integer, database.ForeignKey('case_split.id'), nullable=False)
     user_id = database.Column(database.Integer, database.ForeignKey('item.id'), nullable=False)
     pieces_committed = database.Column(database.Integer, nullable=False)

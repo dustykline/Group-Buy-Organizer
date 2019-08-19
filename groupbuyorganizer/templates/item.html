@@ -179,7 +179,7 @@
     {% if item.case_splits.active_splits or item.case_splits.complete_splits %}
         {% if item.case_splits.active_splits %}
             <div class="container mb-5">
-            {% if item.case_splits.active_splits == 1 %}
+            {% if item.case_splits.active_splits|length == 1 %}
                 <h3>1 Active Case Split</h3>
             {% else %}
                 <h3>{{ item.case_splits.active_splits|length }} Active Case Splits</h3>
@@ -208,7 +208,7 @@
             </div>
         {% endif %}
         {% if item.case_splits.complete_splits %}
-            {% if item.case_splits.complete_splits == 1 %}
+            {% if item.case_splits.complete_splits|length == 1 %}
                 <h3>1 Complete Case Split</h3>
             {% else %}
                 <h3>{{ item.case_splits.complete_splits|length }} Complete Case Splits</h3>
@@ -227,7 +227,7 @@
         </div>
     {% endif %}
 
-    {#  Modal  #}
+    {#  Modal for item delete  #}
     <div class="modal fade" id="item_delete_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
