@@ -5,7 +5,7 @@
             <ol class="breadcrumb">
                 <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('general.home') }}">Home</a></li>
                 <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('events.event', event_id=event.id) }}">{{ event.name }}</a></li>
-                <li class="breadcrumb-item active" aria-current="page">{{ user_name }}'s order</li>
+                <li class="breadcrumb-item active" aria-current="page">Event Total -- User Breakdown</li>
             </ol>
         </nav>
     {% endif %}
@@ -18,8 +18,8 @@
     {% else %}
         <div class="container">
             <div class="alert alert-info mx-auto">
-                <h3><p class="text-center"><span class="align-middle">User's order is currently empty.  This will fill
-                as cases get reserved, and/or case splits get completed.</span></p></h3>
+                <h3><p class="text-center"><span class="align-middle">Event order is currently empty.  This page will be
+                    populated as cases are bought, and/or case splits get completed.</span></p></h3>
             </div>
         </div>
     {% endif %}

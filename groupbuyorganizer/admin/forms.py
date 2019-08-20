@@ -16,4 +16,6 @@ class CreateCategoryForm(FlaskForm):
 
 class ApplicationSettingsForm(FlaskForm):
     registration_enabled = BooleanField("Registration Enabled?")
+    users_can_see_master_overview = BooleanField("Allow users to see entire order summary?")
+    wkhtmltopdf_path = StringField('Absolute file path of wkhtmltopdf binary')
     submit = SubmitField('Submit')

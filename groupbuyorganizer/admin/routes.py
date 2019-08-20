@@ -1,5 +1,6 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+import pdfkit
 
 from datetime import timezone
 
@@ -135,31 +136,32 @@ def app_settings():
     form = ApplicationSettingsForm()
     if form.validate_on_submit():
         instance.registration_enabled = form.registration_enabled.data
+        instance.users_can_see_master_overview = form.users_can_see_master_overview.data
+        instance.wkhtmltopdf_path = form.wkhtmltopdf_path.data
         database.session.commit()
         flash('Changes saved!', 'info')
         return redirect(url_for('admin.app_settings'))
     elif request.method == 'GET':
         form.registration_enabled.data = instance.registration_enabled
+        form.users_can_see_master_overview.data = instance.users_can_see_master_overview
+
+        print(instance.wkhtmltopdf_path)
+        if instance.wkhtmltopdf_path is not None:
+            form.wkhtmltopdf_path.data = instance.wkhtmltopdf_path
     return render_template('app_settings.html', title='Application Settings', form=form)
 
-#todo - temporary for dev purposes
-@admin.cli.command('bootstrap')
-@admin.route("/bootstrap", methods=['GET', 'POST'])
-def bootstrap():
-    # database.drop_all()
-    # database.create_all()
 
-    # database.session.add(Instance())
-
-    # database.session.add(Category(name='Uncategorized'))
-    database.session.add(Category(name='Dog Toys'))
-    database.session.add(Category(name='Cat Toys'))
-    database.session.add(Category(name='Fish Supplies'))
-    database.session.add(Category(name='Dog Food'))
-
-    database.session.add(Event(name='Test Session 1', added_by=1))
-    database.session.add(Event(name='Test Session 2', added_by=1))
-    database.session.commit()
-
-    flash('Success!', 'primary')
-    return redirect(url_for('general.home'))
+@admin.route("/app_settings/test_pdf/", methods=['GET'])
+@login_required
+def test_pdf():
+    '''Once you add the absolute file path of the wkhtmltopdf binary in the app settings, this route serves as a way for
+    the site admin to check that it is properly configured.
+    '''
+    instance = Instance.query.first()
+    config = pdfkit.configuration(wkhtmltopdf=instance.wkhtmltopdf_path)
+    rendered = render_template('test_pdf.html', title='PDF Output Check...')
+    pdf = pdfkit.from_string(rendered, False, configuration=config, options={'quiet':''})
+    response = make_response(pdf)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'inline; filename=test_pdf.pdf'
+    return response

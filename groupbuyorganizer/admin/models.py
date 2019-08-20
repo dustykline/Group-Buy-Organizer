@@ -45,6 +45,8 @@ class Instance(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     root_created = database.Column(database.Boolean, nullable=False, default=False)
     registration_enabled = database.Column(database.Boolean, nullable=False, default=True)
+    users_can_see_master_overview = database.Column(database.Boolean, nullable=False, default=True)
+    wkhtmltopdf_path = database.Column(database.String(256), nullable=True)
 
 
 class Category(database.Model):

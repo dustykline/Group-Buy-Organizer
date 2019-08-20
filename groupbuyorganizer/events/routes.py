@@ -1,8 +1,9 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+import pdfkit
 
 from groupbuyorganizer import database
-from groupbuyorganizer.admin.models import Category, User
+from groupbuyorganizer.admin.models import Category, Instance, User
 from groupbuyorganizer.admin.utilities import admin_check
 from groupbuyorganizer.events.forms import CreateItemForm, CaseSplitForm, CreateEventForm, CaseQuantityOrderForm,\
     EditItemForm, EventExtraChargeForm, EventNotesForm, RemoveUserFromEventForm
@@ -45,7 +46,7 @@ def event(event_id):
                                                             == Category.id).order_by(Category.name, Item.name).all()
     structured_item_list = None
     if items:
-        structured_item_list = StructuredItemList(items)
+        structured_item_list = StructuredItemList(items, event_id)
 
     if form.validate_on_submit() and form.item_name.data:
         item = Item(name=form.item_name.data, price=form.price.data, packing=form.packing.data,
@@ -55,7 +56,6 @@ def event(event_id):
         flash('Item successfully added!', 'success')
         return redirect(url_for('events.event', event_id=event_id))
 
-    # previous_order = CaseBuy.query.filter_by(user_id=current_user.id, event_id=event_id, item_id=item.id).first()
     if remove_user_from_event_form.validate_on_submit():
         active_user = User.query.filter_by(id=remove_user_from_event_form.user_to_remove.data).first()
         case_buys = CaseBuy.query.filter_by(event_id=event_id, user_id=active_user.id).all()
@@ -200,21 +200,24 @@ def item(event_id, item_id):
     create_case_split_form.piece_quantity.choices = choicesList
 
     # Customized item/order view
-    event_item = EventItem(item)
+    event_item = EventItem(item, event_id)
 
     # Modify item quantity in case split form
     modify_split_qty_form = CaseSplitForm()
-
 
     if edit_item_form.validate_on_submit():
         item.name = edit_item_form.item_name.data
         item.category_id = edit_item_form.category_id.data
         item.price = edit_item_form.price.data
+        additional_flash_message = ""
         if item.packing != edit_item_form.packing.data:
-            pass #todo clear all splits
+            additional_flash_message = 'Because of the change in item packing, all case splits have been removed.'
+            case_splits = CaseSplit.query.filter_by(item_id=item.id)
+            for case_split in case_splits:
+                database.session.delete(case_split)
         item.packing = edit_item_form.packing.data
         database.session.commit()
-        flash('Item successfully added!', 'success')
+        flash(f'Item successfully edited!  {additional_flash_message}', 'info')
         return redirect(url_for('events.event', event_id=event_id))
 
     elif order_case_form.validate_on_submit():
@@ -249,6 +252,11 @@ def item(event_id, item_id):
         flash('Case split created!', 'success')
         return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
 
+    elif modify_split_qty_form.validate_on_submit():
+
+        flash('Case split created!', 'info')
+        return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
+
     elif request.method == 'GET':
         edit_item_form.category_id.choices = categories_list
         edit_item_form.item_name.data = item.name
@@ -257,14 +265,42 @@ def item(event_id, item_id):
         edit_item_form.packing.data = item.packing
 
         #populating current case buy quantity, if any
-        previous_order = CaseBuy.query.filter_by(user_id=current_user.id, event_id=event_id, item_id=item.id).first()
+        previous_order = CaseBuy.query.filter_by(user_id=current_user.id, event_id=event.id, item_id=item.id).first()
         if previous_order:
             order_case_form.quantity.data = previous_order.quantity
 
+        # populating case split commit forms
+        split_commit_forms = []
+        active_case_splits = CaseSplit.query.filter(CaseSplit.event_id == event.id, CaseSplit.item_id == item.id,
+                                                    CaseSplit.is_complete == False).order_by(CaseSplit.id.desc()).all()
 
-    return render_template('item.html', added_by_user=added_by_user, form=edit_item_form,
+        for case_split in active_case_splits:
+            pieces_reserved_so_far = 0
+
+            # This is what prevents a single user from being the sole user of a case split, forcing him to just buy a
+            # case.  Aside from that, this doesn't include the user itself in the count for the max items to pledge.
+            if len(case_split.commits) == 1 and case_split.commits[0].user_id == current_user.id:
+                pieces_reserved_so_far = 1
+            else:
+                for commit in case_split.commits:
+                    if commit.user_id != current_user.id:
+                        pieces_reserved_so_far += commit.pieces_committed
+            edit_case_split_form = CaseSplitForm()
+            form_choices = []
+            for i in range(item.packing - pieces_reserved_so_far):
+                form_choices.append((i + 1, i + 1))
+            edit_case_split_form.piece_quantity.choices = form_choices
+            edit_case_split_form.hidden_field = (event.id, item.id, case_split.id)
+            split_commit_forms.append(edit_case_split_form)
+
+    # todo finish complete ones
+        closed_case_splits = CaseSplit.query.filter(CaseSplit.event_id == event.id, CaseSplit.item_id == item.id,
+                                                    CaseSplit.is_complete == True).order_by(CaseSplit.id.desc()).all()
+
+    return render_template('item.html', added_by_user=added_by_user, form=edit_item_form, item_id=item.id,
                            order_case_form=order_case_form, event=event, item=event_item,
-                           create_case_split_form=create_case_split_form, title=f'{item.name} Overview')
+                           split_commit_forms=split_commit_forms, create_case_split_form=create_case_split_form,
+                           title=f'{item.name} Overview')
 
 @events.route('/events/<int:event_id>/items/<int:item_id>/remove/', methods=['GET'])
 @login_required
@@ -281,13 +317,115 @@ def remove_item(event_id, item_id):
 @login_required
 def event_total(event_id):
     event = Event.query.get_or_404(event_id)
-    return render_template('event_total.html', event=event, title='Event Total')
+    instance = Instance.query.first()
+    if instance.users_can_see_master_overview == False:
+        if current_user.is_admin == False:
+            flash('Access denied', 'warning')
+            return redirect(url_for('general.home')) #todo check
+    return render_template('master_order_review.html', event=event, is_pdf=False,
+                           users_can_see_master_overview=instance.users_can_see_master_overview, title=f'{event.name} '
+        f'Order Overview')
+
+@events.route('/events/<int:event_id>/event_total/pdf')
+@login_required
+def event_total_pdf(event_id):
+    event = Event.query.get_or_404(event_id)
+    instance = Instance.query.first()
+    if instance.users_can_see_master_overview == False:
+        if current_user.is_admin == False:
+            flash('Access denied', 'warning')
+            return redirect(url_for('general.home'))
+
+    config = pdfkit.configuration(wkhtmltopdf=instance.wkhtmltopdf_path)
+    rendered = render_template('master_order_review.html', is_pdf=True, event=event, title=f'{event.name} Order Overview')
+    pdf = pdfkit.from_string(rendered, False, configuration=config, options={'quiet': ''})
+    response = make_response(pdf)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=Order_Overview.pdf'
+    return response
+
 
 @events.route('/events/<int:event_id>/event_total_user_breakdown/', methods=['GET'])
 @login_required
 def event_total_user_breakdown(event_id):
     event = Event.query.get_or_404(event_id)
-    return render_template('event_total_user_breakdown.html', event=event, title='Event Total')
+    instance = Instance.query.first()
+
+    if instance.users_can_see_master_overview == False:
+        if current_user.is_admin == False:
+            flash('Access denied', 'warning')
+            return redirect(url_for('general.home'))
+
+    return render_template('user_breakdown.html', event=event, is_pdf=False,
+                           users_can_see_master_overview=instance.users_can_see_master_overview, title=f'{event.name} '
+        f'- Case Breakdown')
+
+@events.route('/events/<int:event_id>/event_total_user_breakdown/pdf/', methods=['GET'])
+@login_required
+def event_total_user_breakdown_pdf(event_id):
+    event = Event.query.get_or_404(event_id)
+    instance = Instance.query.first()
+
+    if instance.users_can_see_master_overview == False:
+        if current_user.is_admin == False:
+            flash('Access denied', 'warning')
+            return redirect(url_for('general.home'))
+
+    config = pdfkit.configuration(wkhtmltopdf=instance.wkhtmltopdf_path)
+    rendered = render_template('user_breakdown.html', is_pdf=True, event=event,
+                               title=f'{event.name} - Case Breakdown')
+    pdf = pdfkit.from_string(rendered, False, configuration=config, options={'quiet': ''})
+    response = make_response(pdf)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=Event Overview - User Breakdown.pdf'
+    return response
+
+
+@events.route('/events/<int:event_id>/user_order/<int:user_id>/', methods=['GET', 'POST'])
+@login_required
+def my_order(event_id, user_id):
+    event = Event.query.get_or_404(event_id)
+    user = User.query.get_or_404(user_id)
+    instance = Instance.query.first()
+
+    if instance.users_can_see_master_overview == False:
+        if current_user.is_admin == False:
+            flash('Access denied', 'warning')
+            return redirect(url_for('general.home'))
+
+    return render_template('my_order.html', event=event, is_pdf=False, user_name = user.username,
+                           users_can_see_master_overview=instance.users_can_see_master_overview,
+                           title=f"{user.username}'s order")
+
+@events.route('/events/<int:event_id>/user_order/<int:user_id>/pdf/', methods=['GET', 'POST'])
+@login_required
+def my_order_pdf(event_id, user_id):
+    event = Event.query.get_or_404(event_id) #todo priv, primary arg
+    user = User.query.get_or_404(user_id)
+    instance = Instance.query.first()
+
+    if instance.users_can_see_master_overview == False and current_user.id != user.id:
+        if current_user.is_admin == False:
+            flash('Access denied', 'warning')
+            return redirect(url_for('general.home'))
+
+    config = pdfkit.configuration(wkhtmltopdf=instance.wkhtmltopdf_path)
+    rendered = render_template('my_order.html', is_pdf=True, event=event,
+                               title=f"{user.username}'s order")
+    pdf = pdfkit.from_string(rendered, False, configuration=config, options={'quiet': ''})
+    response = make_response(pdf)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=Order_Overview.pdf'
+    return response
+
+
+@events.route('/events/<int:event_id>/manage_payments/', methods=['GET'])
+@login_required
+def manage_payments(event_id):
+    event = Event.query.get_or_404(event_id)
+    admin_check(current_user)
+    return render_template('manage_payments.html', event=event, title='Manage Payments')
+
 
 @events.route('/events/<int:event_id>/items/<int:item_id>/case_split/<int:case_split_id>/remove/')
 @login_required
@@ -307,14 +445,17 @@ def remove_case_split(event_id, item_id, case_split_id):
 @events.route('/events/<int:event_id>/items/<int:item_id>/case_split/<int:case_split_id>/commit/<int:commit_id>/remove',
     methods=['GET'])
 @login_required
-def remove_case_split_commit(event_id, item_id, case_split_id, commit_id):
+def remove_case_split_pledge(event_id, item_id, case_split_id, commit_id):
     event = Event.query.get_or_404(event_id)
     item = Item.query.get_or_404(item_id)
     case_split = CaseSplit.query.get_or_404(case_split_id)
-    commit = CasePieceCommit.query.get_or_404(commit_id)
+    commit = CasePieceCommit.query.get_or_404(commit_id) #todo remove split if that was only commit
     if commit.user_id == current_user.id or current_user.is_admin:
         database.session.delete(commit)
         database.session.commit()
+        if not case_split.commits:
+            database.session.delete(case_split)
+            database.session.commit()
         flash('Case split commit removed!', 'info')
         return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
     else:

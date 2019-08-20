@@ -12,14 +12,37 @@
             {{ form.hidden_tag() }}
             <fieldset class="form-group mt-5 mb-3">
                 <div class="form-group">
-                    <div class="form-check">
+                    <div class="form-check m-3">
                         {{ form.registration_enabled(class="form-check-input") }}
                         {{ form.registration_enabled.label(class="form-check-label") }}
+                    </div>
+                    <div class="form-check m-3">
+                        {{ form.users_can_see_master_overview(class="form-check-input") }}
+                        {{ form.users_can_see_master_overview.label(class="form-check-label") }}
+                    </div>
+                    <div class="m-3">
+                        {{ form.wkhtmltopdf_path.label(class="form-control-label") }}
+                        {{ form.wkhtmltopdf_path(class="form-control form-control-lg") }}
+                        {% if form.wkhtmltopdf_path.data %}
+                            <a class="btn btn-outline-success mt-3 mb-3" href="{{ url_for('admin.test_pdf') }}" role="button">Test PDF</a>
+                        {% else %}
+                            <a class="btn btn-outline-success disabled mt-3 mb-3" href="#" role="button">Add File Path To Test PDF</a>
+                        {% endif %}
+                        <p class="text-muted">In order to properly output PDF files, Group Buy Organizer requires
+                        <code>wkhtmltopdf</code>, an open-source library to convert the files.  Download and install on your server.
+                            Once installed, put the absolute path of the binary in the field above.  That could look like:</p>
+                        <p><code><h5>C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe</h5></code></p>
+                        <p class="text-muted">A default path is provided that works on Window machines; if your server
+                        is running Linux, you will need to change this.  When a proper path is added, click the "Test PDF"
+                        to see if everything has been set up properly.  A PDF will open in-browser with a success message if
+                        it works, otherwise you'll get an ugly error screen (don't worry, its not breaking anything behind
+                        the scenes).</p>
+                        <a href="https://wkhtmltopdf.org/downloads.html">https://wkhtmltopdf.org/downloads.html</a>
                     </div>
                 </div>
             </fieldset>
             <div class="form-group">
-                {{ form.submit(class="btn btn-outline-info") }}
+                {{ form.submit(class="btn btn-outline-info ml-3") }}
             </div>
         </form>
     </div>

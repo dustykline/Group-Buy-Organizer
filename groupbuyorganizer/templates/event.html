@@ -13,6 +13,32 @@
                 <h6 class="card-subtitle mb-2 text-muted">This form is only visible to administrators.</h6>
             </div>
             <div class="card-header">
+                <a class="btn btn-outline-success" href="{{ url_for('events.my_order', event_id=event.id, user_id=current_user.id) }}" role="button">My Order</a>
+                <a class="btn btn-outline-primary m-1" href="{{ url_for('events.event_total', event_id=event.id) }}" role="button">Master Order Review</a>
+                <a class="btn btn-outline-primary m-1" href="{{ url_for('events.event_total_user_breakdown', event_id=event.id) }}" role="button">User Breakdown</a>
+                <a class="btn btn-outline-secondary m-1" href="{{ url_for('events.event_edit', event_id=event.id) }}" role="button">Edit Event</a>
+                <a class="btn btn-outline-info m-1" href="{{ url_for('events.manage_payments', event_id=event.id) }}" role="button">Manage Payments</a>
+                {% if remove_user_from_event_form.user_to_remove.choices %}
+                    <form class="form-inline mt-2" method="POST">
+                        {{ remove_user_from_event_form.hidden_tag() }}
+                        <div class="input-group mb-2 mr-sm-2">
+                            {{ remove_user_from_event_form.user_to_remove.label(class="form-control-label mr-3") }}
+                            {{ remove_user_from_event_form.user_to_remove(class_="form-control") }}
+                        </div>
+                        <div class="form-check mb-2 ml-1 mr-sm-2">
+                            {{ remove_user_from_event_form.submit(class="btn btn-outline-warning") }}
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        <div class="card mb-5 mt-5">
+            <div class="card-header">
+                <h3 class="card-title">Admin Panel</h3>
+                <h6 class="card-subtitle mb-2 text-muted">This form is only visible to administrators.</h6>
+            </div>
+            <div class="card-header">
                 <a class="btn btn-outline-success m-1" href="{{ url_for('events.event_total', event_id=event.id) }}" role="button">Event Order Total</a>
                 <a class="btn btn-outline-success m-1" href="{{ url_for('events.event_total_user_breakdown', event_id=event.id) }}" role="button">User Breakdown</a>
                 <a class="btn btn-outline-secondary m-1" href="{{ url_for('events.event_edit', event_id=event.id) }}" role="button">Edit Event</a>
@@ -186,7 +212,7 @@
     {% else %}
         <div class="container">
             <div class="alert alert-info mx-auto">
-                <h3><p class="text-center"><span class="align-middle">No items exist (yet), use the form above to add some!</span></p></h3>
+                <h5><p class="text-center"><span class="align-middle">No items exist (yet), use the form above to add some!</span></p></h5>
             </div>
         </div>
     {% endif %}

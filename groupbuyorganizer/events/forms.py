@@ -1,6 +1,6 @@
 from flask import request
 from flask_wtf import FlaskForm
-from wtforms import DecimalField, IntegerField, SelectField, StringField, SubmitField, TextAreaField
+from wtforms import DecimalField, HiddenField, IntegerField, SelectField, StringField, SubmitField, TextAreaField
 from wtforms.validators import InputRequired, DataRequired, ValidationError
 
 from groupbuyorganizer.events.models import Event, Item
@@ -55,7 +55,8 @@ class CaseQuantityOrderForm(FlaskForm):
 
 
 class CaseSplitForm(FlaskForm):
-    piece_quantity = SelectField('Case Pieces Requested', coerce=int)
+    hidden_field = HiddenField()
+    piece_quantity = SelectField('Case Pieces To Pledge', coerce=int)
     submit = SubmitField('Submit')
 
 

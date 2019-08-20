@@ -3,7 +3,7 @@ from flask_login import current_user
 
 from groupbuyorganizer import database
 from groupbuyorganizer.admin.models import User
-from groupbuyorganizer.events.models import CaseBuy, Item, Event
+from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Item, Event
 
 def admin_check(user):
     '''This protects against logged in users from accessing the admin pages, even if they know the direct URL.'''
@@ -33,14 +33,11 @@ class HomeEvent:
         self.event_total = self.get_event_total()
 
     def _get_case_list(self):
-        '''This function '''
-        case_list = []
-        case_buys = CaseBuy.query.filter_by(event_id=self.event.id).all()
-        if case_buys is not None:
-            case_list.append(case_buys)
+        '''This query is used twice, so this function exists to reduce redundant operations.  It returns a list of both
+        case buys, and completed case splits.'''
 
-        #todo same with splits
-        case_splits = []
+        case_buys = CaseBuy.query.filter_by(event_id=self.event.id).all()
+        case_splits = CaseSplit.query.filter_by(event_id=self.event.id).all()
 
         return case_buys, case_splits
 
@@ -49,24 +46,34 @@ class HomeEvent:
         return user.username
 
     def get_active_participants(self):
-        total_participants = 0
-        # for case_order in self._case_list[0]:
-        #     users = User.query.filter_by(id=case_order.item_id).first()
-        #     total_participants += len(users) #todo
 
-        # todo include committed full cases
-        return total_participants
+        case_order_user_ids = database.session.query(User.id).filter(CaseBuy.event_id == self.event.id,
+                                                                     User.id == CaseBuy.user_id).all()
+        case_split_user_ids = database.session.query(User.id).filter(CasePieceCommit.id == self.event.id,
+                                                                     CasePieceCommit.user_id == User.id).all()
+
+        total_user_set = set()
+        for user in case_order_user_ids:
+            total_user_set.add(user)
+        for user in case_split_user_ids:
+            total_user_set.add(user)
+
+        return len(total_user_set)
 
 
     def get_active_case_splits(self):
-        return 0
+
+        active_case_splits = database.session.query(CaseSplit.id).filter(CaseSplit.event_id == self.event.id,
+                                                        CaseSplit.is_complete == False).all()
+        return len(active_case_splits)
 
     def get_total_cases(self):
         total_count = 0
         for case_order in self._case_list[0]:
             total_count += case_order.quantity
-
-        #todo include committed full cases
+        for case_split in self._case_list[1]:
+            if case_split.is_complete == True:
+                total_count += 1
         return total_count
 
     def get_event_total(self):
@@ -75,5 +82,8 @@ class HomeEvent:
             item = Item.query.filter_by(id=case_order.item_id).first()
             total_cost += (case_order.quantity * item.price)
 
-        # todo include committed full cases
+        for case_split in self._case_list[1]:
+            if case_split.is_complete == True:
+                item = Item.query.filter_by(id=case_split.item_id).first()
+                total_cost += item.price
         return total_cost

@@ -32,6 +32,6 @@ database.session.commit()
 
 # Creating an "Instance" model if there is none.
 if Instance.query.get(1) is None:
-    database.session.add(Instance())
+    database.session.add(Instance(wkhtmltopdf_path="C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe"))
     database.session.add(Category(name='Uncategorized'))
     database.session.commit()

@@ -121,64 +121,68 @@
                 </table>
         </div>
     </div>
-    <div class="card mt-5" style="width: 18rem;">
-        <div class="card-header">
-            <h3 class="card-title">Whole Cases</h3>
-            <h6 class="card-subtitle mb-2 text-muted">Use this form to update how many whole cases you'd like to order.</h6>
-        </div>
-        <div class="card-header">
-            <form class="form-inline" method="POST" action="">
-                {{ form.hidden_tag() }}
-                <div class="form-row">
-                    <div class="col">
-                        {{ order_case_form.quantity.label(class="form-control-label mb-2") }}
-                        {{ order_case_form.quantity(class="form-control") }}
+    {% if not event.is_locked %}
+        <div class="card mt-5" style="width: 18rem;">
+            <div class="card-header">
+                <h3 class="card-title">Whole Cases</h3>
+                <h6 class="card-subtitle mb-2 text-muted">Use this form to update how many whole cases you'd like to order.</h6>
+            </div>
+            <div class="card-header">
+                <form class="form-inline" method="POST" action="">
+                    {{ form.hidden_tag() }}
+                    <div class="form-row">
+                        <div class="col">
+                            {{ order_case_form.quantity.label(class="form-control-label mb-2") }}
+                            {{ order_case_form.quantity(class="form-control") }}
+                        </div>
                     </div>
-                </div>
-                <div class="form-row">
-                    {% if event.is_locked %}
-                        <button type="button" class="btn btn-outline-info disabled mt-4 ml-1" disabled>Update</button>
-                    {% else %}
-                        {{ order_case_form.submit(class="btn btn-outline-info mt-4 ml-1") }}
-                    {% endif %}
-                </div>
-            </form>
-        </div>
-    </div>
-    <div class="container mt-5 mb-5">
-        <h2>Case Splits</h2>
-    <p class="text-muted">Case splits are when you share a case with one or more other users.  If and only if the whole
-        case gets filled, it will be "committed" and locked in to the order.  That means any case splits that don't have
-        every item in the case reserved by the end of the group buy event will not be added.</p>
-    </div>
-    <div class="card mb-5" style="width: 18rem;">
-        <div class="card-header">
-            <h3 class="card-title">Create Case Split</h3>
-            <h6 class="card-subtitle mb-2 text-muted">Use this form to create a case split, with how many items in the
-                case you pledge to order.</h6>
-        </div>
-        <div class="card-header">
-            <form class="form-inline" method="POST" action="">
-                {{ create_case_split_form.hidden_tag() }}
-                <div class="form-row">
-                    <div class="col">
-                        {{ create_case_split_form.piece_quantity.label(class="form-control-label mb-2") }}
-                        {{ create_case_split_form.piece_quantity(class="form-control") }}
+                    <div class="form-row">
+                        {% if event.is_locked %}
+                            <button type="button" class="btn btn-outline-info disabled mt-4 ml-1" disabled>Update</button>
+                        {% else %}
+                            {{ order_case_form.submit(class="btn btn-outline-info mt-4 ml-1") }}
+                        {% endif %}
                     </div>
-                </div>
-                <div class="form-row">
-                    {% if event.is_locked %}
-                        <button type="button" class="btn btn-outline-info disabled mt-4 ml-1" disabled>Submit</button>
-                    {% else %}
-                        {{ create_case_split_form.submit(class="btn btn-outline-info mt-4 ml-1") }}
-                    {% endif %}
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
+        {% endif %}
+        {% if not event.is_locked and item.packing > 1 %}
+        <div class="container mt-5 mb-5">
+            <h2>Case Splits</h2>
+        <p class="text-muted">Case splits are when you share a case with one or more other users.  If and only if the whole
+            case gets filled, it will be "committed" and locked in to the order.  That means any case splits that don't have
+            every item in the case reserved by the end of the group buy event will not be added.</p>
+        </div>
+        <div class="card mb-5" style="width: 18rem;">
+            <div class="card-header">
+                <h3 class="card-title">Create Case Split</h3>
+                <h6 class="card-subtitle mb-2 text-muted">Use this form to create a case split, with how many items in the
+                    case you pledge to order.</h6>
+            </div>
+            <div class="card-header">
+                <form class="form-inline" method="POST" action="">
+                    {{ create_case_split_form.hidden_tag() }}
+                    <div class="form-row">
+                        <div class="col">
+                            {{ create_case_split_form.piece_quantity.label(class="form-control-label mb-2") }}
+                            {{ create_case_split_form.piece_quantity(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        {% if event.is_locked %}
+                            <button type="button" class="btn btn-outline-info disabled mt-4 ml-1" disabled>Submit</button>
+                        {% else %}
+                            {{ create_case_split_form.submit(class="btn btn-outline-info mt-4 ml-1") }}
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endif %}
     {% if item.case_splits.active_splits or item.case_splits.complete_splits %}
         {% if item.case_splits.active_splits %}
-            <div class="container mb-5">
+            <div class="container mb-5 mt-5">
             {% if item.case_splits.active_splits|length == 1 %}
                 <h3>1 Active Case Split</h3>
             {% else %}
@@ -188,7 +192,17 @@
             {% for active_split in item.case_splits.active_splits %}
                 <div class="card border border-success mb-5 mt-5">
                     <div class="card-header">
-                        <h3 class="card-title">{{ item.packing - active_split[0].pieces_available }} / {{ item.packing }} pieces reserved</h3>
+                        <h3 class="card-title">{{ item.packing - active_split[0].pieces_available }} / {{ item.packing }} Items Pledged</h3>
+                        {% set commit_form_index = 0 %}
+                        {% if active_split %}
+                            <div class="float-right">
+                                Join Case Split {form placeholder}
+                                <form method="POST">
+                                    {{ split_commit_forms[commit_form_index].csrf_token() }}
+                                </form>
+                                {% set commit_form_index = commit_form_index + 1 %}
+                            </div>
+                        {% endif %}
                         <h6 class="card-subtitle mb-2 text-muted">Added by {{ active_split[1].username }}</h6>
                     </div>
                     <div class="card-header">
@@ -197,21 +211,59 @@
                                     ((item.packing - active_split[0].pieces_available)/item.packing)*100 }}%">{{ item.packing
                                     - active_split[0].pieces_available }} / {{ item.packing }}</div>
                         </div>
+                        <table class="table">
+                            <thead>
+                               <tr>
+                                   <th scope="col">Order of Pledges Submitted</th>
+                                   <th scope="col">Username</th>
+                                   <th scope="col">Quantity To Pledge</th>
+                                   {% if current_user.is_admin or active_split.is_current_user_involved %}
+                                        <th scope="col">Remove Pledge?</th>
+                                   {% endif %}
+                               </tr>
+                            </thead>
+                            <tbody>
+                                {% set commit_form_index = 1 %}
+                                {% for commit in active_split[0].commits %}
+                                    <tr>
+                                        <td># {{ active_split[0].commits|length - loop.index0 }}</td>
+                                        <td>{{ commit[0][1] }}</td>
+                                        {% if current_user.id == commit[0][0] %}
+                                            <td>{{ commit[1].pieces_committed }} {placeholder}</td>
+                                        {% else %}
+                                            <td>{{ commit[1].pieces_committed }}</td>
+                                        {% endif %}
+                                        {% if not event.is_locked %}
+                                            {% if current_user.is_admin or active_split.is_current_user_involved %}
+                                                <td><a class="btn btn-outline-danger" href="{{ url_for('events.remove_case_split_pledge',
+                                                event_id=event.id, item_id=item_id, case_split_id=active_split[0].case_split.id, commit_id=commit[1].id) }}" role="button">Remove</a></td>
+                                            {% endif %}
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             {% endfor %}
             </div>
         {% else %}
-            <div class="alert alert-info mx-auto">
-                <h3><p class="text-center"><span class="align-middle">No currently active case splits for this item.  Use
-                the form above to create a new one.</span></p></h3>
-            </div>
+            {% if event.is_locked %}
+                <div class="alert alert-info mx-auto">
+                    <h5><p class="text-center">No incomplete case splits for this item.</p></h5>
+                </div>
+            {% else %}
+                <div class="alert alert-info mx-auto">
+                    <h5><p class="text-center">No currently active case splits for this item.
+                        Use the form above to create a new one.</p></h5>
+                </div>
+            {% endif %}
         {% endif %}
         {% if item.case_splits.complete_splits %}
             {% if item.case_splits.complete_splits|length == 1 %}
-                <h3>1 Complete Case Split</h3>
+                <h3 class="mt-5 mb-5">1 Complete Case Split</h3>
             {% else %}
-                <h3>{{ item.case_splits.complete_splits|length }} Complete Case Splits</h3>
+                <h3 class="mt-5 mb-5">{{ item.case_splits.complete_splits|length }} Complete Case Splits</h3>
             <hr>
             {% endif %}
             {% for active_split in item.case_splits.active_splits %}
@@ -220,10 +272,21 @@
 
     {% else %}
         <div class="container">
-            <div class="alert alert-info mx-auto">
-                <h3><p class="text-center"><span class="align-middle">No case splits for this item (yet).  Use the form
-                    above if you wish to create one!</span></p></h3>
-            </div>
+            {% if item.packing > 1 %}
+                {% if event.is_locked %}
+                    <div class="alert alert-info mx-auto mb-5 mt-5">
+                        <h5><p class="text-center">No case splits found for this item.</p></h5>5
+                    </div>
+                {% else %}
+                    <div class="alert alert-info mx-auto mb-5 mt-5">
+                        <h5><p class="text-center">No case splits for this item (yet).  Use the form above if you wish to create one!</p></h5>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="alert alert-info mx-auto mb-5 mt-5">
+                    <h5><p class="text-center">Cannot have case splits with items packed one to a case!</p></h5>
+                </div>
+            {% endif %}
         </div>
     {% endif %}
 

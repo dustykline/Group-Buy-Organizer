@@ -93,11 +93,11 @@
                                         </form>
                                     </td>
                                     {% if event.is_closed %}
-                                        <td><a class="btn btn-outline-warning disabled" href="#" role="button">Unlock</a></td>
+                                        <td><a class="btn btn-outline-success disabled" href="#" role="button">Unlock</a></td>
                                         <td><a class="btn btn-outline-secondary" href="{{ url_for('events.event_open', event_id=event.id) }}" role="button">Open</a></td>
                                     {% else %}
                                         {% if event.is_locked%}
-                                            <td><a class="btn btn-outline-warning" href="{{ url_for('events.event_unlock', event_id=event.id) }}" role="button">Unlock</a></td>
+                                            <td><a class="btn btn-outline-success" href="{{ url_for('events.event_unlock', event_id=event.id) }}" role="button">Unlock</a></td>
                                             <td><a class="btn btn-outline-secondary" href="{{ url_for('events.event_close', event_id=event.id) }}" role="button">Close</a></td>
                                         {% else %}
                                             <td><a class="btn btn-outline-warning" href="{{ url_for('events.event_lock', event_id=event.id) }}" role="button">Lock</a></td>
