@@ -2,7 +2,6 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
-from flask_mail import Mail
 
 web_app = Flask(__name__)
 web_app.config['SECRET_KEY'] = 'temporary'
@@ -13,7 +12,6 @@ bcrypt = Bcrypt(web_app)
 login_manager = LoginManager(web_app)
 login_manager.login_view = 'general.login'
 login_manager.login_message_category = 'general.info'
-mail = Mail(web_app)
 
 from groupbuyorganizer.admin.models import Category, Instance
 import groupbuyorganizer.events.models

@@ -1,0 +1,70 @@
+{% extends primary.html %}
+{% begin content block %}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('general.home') }}">Home</a></li>
+            <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('events.event', event_id=event.id) }}">{{ event.name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page"><a href="{{ url_for('events.item', event_id=event.id, item_id=item.id) }}">{{ item.name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Case Split</li>
+        </ol>
+    </nav>
+    {% if case_split.is_complete %}
+        <div class="card border border-success mb-5 mt-5">
+    {% else %}
+        <div class="card border border-secondary mb-5 mt-5">
+    {% endif %}
+        <div class="card-header">
+            {% if active_split.is_current_user_involved %}
+            <h3 class="card-title bg-success text-white p-3"><a href="#">{{ item.packing - case_split.pieces_available }} / {{ item.packing }} Items Pledged</a></h3>
+            {% else %}
+                <h3 class="card-title mt-3 mb-3"><a href="#">{{ item.packing - case_split.pieces_available }} / {{ item.packing }} Items Pledged</a></h3>
+            {% endif %}
+            {% if active_split %}
+                <div class="float-right">
+
+                </div>
+            {% endif %}
+            <h6 class="card-subtitle mb-2 text-muted">Added by {{ created_by }}</h6>
+        </div>
+        <div class="card-header">
+            <div class="progress">
+                <div class="progress-bar progress-bar-striped bg-success" role="progressbar" style="width: {{
+                        ((item.packing - active_split[0].pieces_available)/item.packing)*100 }}%">{{ item.packing
+                        - case_split.pieces_available }} / {{ item.packing }}</div>
+            </div>
+            <table class="table">
+                <thead>
+                   <tr>
+                       <th scope="col">Order of Pledges Submitted</th>
+                       <th scope="col">Username</th>
+                       <th scope="col">Quantity Pledged</th>
+                       {% if current_user.is_admin or case_split.is_current_user_involved %}
+                            <th scope="col">Remove Pledge?</th>
+                       {% endif %}
+                   </tr>
+                </thead>
+                <tbody>
+                    {% for commit in case_split.commits %}
+                        <tr>
+                            <td># {{ case_split.commits|length - loop.index0 }}</td>
+                            <td>{{ commit[0][1] }}</td>
+                            {% if current_user.id == commit[0][0] %}
+                                <td>
+                                    current user! table here
+                                </td>
+                            {% else %}
+                                <td>{{ commit[1].pieces_committed }}</td>
+                            {% endif %}
+                            {% if not event.is_locked %}
+                                {% if current_user.is_admin or case_split.is_current_user_involved %}
+                                    <td><a class="btn btn-outline-danger" href="{{ url_for('events.remove_case_split_pledge',
+                                    event_id=event.id, item_id=item_id, case_split_id=case_split.id, commit_id=commit[1].id) }}" role="button">Remove</a></td>
+                                {% endif %}
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% end content block %}

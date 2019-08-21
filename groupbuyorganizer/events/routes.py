@@ -5,10 +5,10 @@ import pdfkit
 from groupbuyorganizer import database
 from groupbuyorganizer.admin.models import Category, Instance, User
 from groupbuyorganizer.admin.utilities import admin_check
-from groupbuyorganizer.events.forms import CreateItemForm, CaseSplitForm, CreateEventForm, CaseQuantityOrderForm,\
+from groupbuyorganizer.events.forms import CreateItemForm, CreateCaseSplitForm, CreateEventForm, CaseQuantityOrderForm,\
     EditItemForm, EventExtraChargeForm, EventNotesForm, RemoveUserFromEventForm
 from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Event, Item
-from groupbuyorganizer.events.utilities import EventItem, StructuredItemList
+from groupbuyorganizer.events.utilities import CaseSplitGroup, EventItem, StructuredItemList
 
 
 events = Blueprint('events', __name__)
@@ -193,7 +193,7 @@ def item(event_id, item_id):
     order_case_form = CaseQuantityOrderForm()
 
     # Create Case Splits
-    create_case_split_form = CaseSplitForm()
+    create_case_split_form = CreateCaseSplitForm()
     choicesList = []
     for i in range(item.packing - 1):
         choicesList.append((i + 1, i + 1))
@@ -201,9 +201,6 @@ def item(event_id, item_id):
 
     # Customized item/order view
     event_item = EventItem(item, event_id)
-
-    # Modify item quantity in case split form
-    modify_split_qty_form = CaseSplitForm()
 
     if edit_item_form.validate_on_submit():
         item.name = edit_item_form.item_name.data
@@ -252,11 +249,6 @@ def item(event_id, item_id):
         flash('Case split created!', 'success')
         return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
 
-    elif modify_split_qty_form.validate_on_submit():
-
-        flash('Case split created!', 'info')
-        return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
-
     elif request.method == 'GET':
         edit_item_form.category_id.choices = categories_list
         edit_item_form.item_name.data = item.name
@@ -269,38 +261,10 @@ def item(event_id, item_id):
         if previous_order:
             order_case_form.quantity.data = previous_order.quantity
 
-        # populating case split commit forms
-        split_commit_forms = []
-        active_case_splits = CaseSplit.query.filter(CaseSplit.event_id == event.id, CaseSplit.item_id == item.id,
-                                                    CaseSplit.is_complete == False).order_by(CaseSplit.id.desc()).all()
-
-        for case_split in active_case_splits:
-            pieces_reserved_so_far = 0
-
-            # This is what prevents a single user from being the sole user of a case split, forcing him to just buy a
-            # case.  Aside from that, this doesn't include the user itself in the count for the max items to pledge.
-            if len(case_split.commits) == 1 and case_split.commits[0].user_id == current_user.id:
-                pieces_reserved_so_far = 1
-            else:
-                for commit in case_split.commits:
-                    if commit.user_id != current_user.id:
-                        pieces_reserved_so_far += commit.pieces_committed
-            edit_case_split_form = CaseSplitForm()
-            form_choices = []
-            for i in range(item.packing - pieces_reserved_so_far):
-                form_choices.append((i + 1, i + 1))
-            edit_case_split_form.piece_quantity.choices = form_choices
-            edit_case_split_form.hidden_field = (event.id, item.id, case_split.id)
-            split_commit_forms.append(edit_case_split_form)
-
-    # todo finish complete ones
-        closed_case_splits = CaseSplit.query.filter(CaseSplit.event_id == event.id, CaseSplit.item_id == item.id,
-                                                    CaseSplit.is_complete == True).order_by(CaseSplit.id.desc()).all()
 
     return render_template('item.html', added_by_user=added_by_user, form=edit_item_form, item_id=item.id,
                            order_case_form=order_case_form, event=event, item=event_item,
-                           split_commit_forms=split_commit_forms, create_case_split_form=create_case_split_form,
-                           title=f'{item.name} Overview')
+                           create_case_split_form=create_case_split_form, title=f'{item.name} Overview')
 
 @events.route('/events/<int:event_id>/items/<int:item_id>/remove/', methods=['GET'])
 @login_required
@@ -427,7 +391,7 @@ def manage_payments(event_id):
     return render_template('manage_payments.html', event=event, title='Manage Payments')
 
 
-@events.route('/events/<int:event_id>/items/<int:item_id>/case_split/<int:case_split_id>/remove/')
+@events.route('/events/<int:event_id>/items/<int:item_id>/case_splits/<int:case_split_id>/remove/')
 @login_required
 def remove_case_split(event_id, item_id, case_split_id):
     event = Event.query.get_or_404(event_id)
@@ -442,7 +406,7 @@ def remove_case_split(event_id, item_id, case_split_id):
         flash('Access denied', 'danger')
         return redirect(url_for('general.home'))
 
-@events.route('/events/<int:event_id>/items/<int:item_id>/case_split/<int:case_split_id>/commit/<int:commit_id>/remove',
+@events.route('/events/<int:event_id>/items/<int:item_id>/case_splits/<int:case_split_id>/commits/<int:commit_id>/remove',
     methods=['GET'])
 @login_required
 def remove_case_split_pledge(event_id, item_id, case_split_id, commit_id):
@@ -461,3 +425,41 @@ def remove_case_split_pledge(event_id, item_id, case_split_id, commit_id):
     else:
         flash('Access denied', 'danger')
         return redirect(url_for('general.home'))
+
+
+@events.route('/events/<int:event_id>/items/<int:item_id>/case_splits/<int:case_split_id>/',
+    methods=['GET', 'POST'])
+@login_required
+def case_split(event_id, item_id, case_split_id):
+    event = Event.query.get_or_404(event_id)
+    item = Item.query.get_or_404(item_id)
+    case_split = CaseSplit.query.get_or_404(case_split_id)
+    case_split_group = CaseSplitGroup((case_split,), item.packing, event.id)
+    created_by = case_split_group.single_split[1]
+    case_split_item = case_split_group.single_split[0]
+
+    modify_case_split_form = CreateCaseSplitForm()
+    pieces_reserved_so_far = 0
+
+    # This is what prevents a single user from being the sole user of a case split, forcing him to just buy a
+    # case.  Aside from that, this doesn't include the user itself in the count for the max items to pledge.
+    if len(case_split.commits) == 1 and case_split.commits[0].user_id == current_user.id:
+        pieces_reserved_so_far = 1
+    else:
+        for commit in case_split.commits:
+            if commit.user_id != current_user.id:
+                pieces_reserved_so_far += commit.pieces_committed
+    form_choices = []
+    for i in range(item.packing - pieces_reserved_so_far):
+        form_choices.append((i + 1, i + 1))
+    print(form_choices)
+    modify_case_split_form.piece_quantity.choices = form_choices
+
+    if modify_case_split_form.validate_on_submit():
+        #todo
+        flash('Case split created!', 'info')
+        return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
+
+    return render_template('case_split.html', event_id=event.id, item_id=item.id, created_by=created_by,
+                           modify_case_split_form=modify_case_split_form, case_split=case_split_item,
+                           title='Participate in Case Split')

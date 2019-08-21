@@ -1,14 +1,12 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
-from flask_mail import Message
 
-from groupbuyorganizer import database, bcrypt, mail
+from groupbuyorganizer import database, bcrypt
 from groupbuyorganizer.admin.models import Instance, User
 from groupbuyorganizer.admin.utilities import HomeEvent
 from groupbuyorganizer.events.forms import CreateEventForm
 from groupbuyorganizer.events.models import Event
-from groupbuyorganizer.general.forms import LoginForm, RegistrationForm, RequestResetForm, \
-    ResetPasswordForm, UserOptionsForm
+from groupbuyorganizer.general.forms import LoginForm, RegistrationForm, UserOptionsForm
 
 general = Blueprint('general', __name__)
 
@@ -105,49 +103,6 @@ def account():
         form.email.data = current_user.email
     return render_template('account.html', title=f'{current_user.username} Account Settings', form=form)
 
-
-def send_reset_email(user):
-    token = user.get_reset_token()
-    msg = Message('Group Buy Organizer - Password Reset Request', sender='noreply@demo.com', recipients=[user.email])
-    # todo configure sender
-    msg.body = f'''To reset your password, please visit the following link:
-    {url_for('general.reset_token', token=token, _external=True)}
-
-    If you did not make this request then simply ignore this email and no changes will be made.
-    '''
-    mail.send()
-
-
-@general.route("/reset_password/", methods=['GET', 'POST'])
-def reset_request():
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
-    form = RequestResetForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
-        send_reset_email(user)
-        flash('An email has been sent with instructions to reset your password.', 'info')
-        return redirect(url_for('general.login'))
-
-    return render_template('reset_request.html', title='Reset Password', form=form)
-
-
-@general.route("/reset_password/<token>/", methods=['GET', 'POST'])
-def reset_token(token):
-    if current_user.is_authenticated:
-        return redirect(url_for('general.home'))
-    user = User.verify_reset_token(token)
-    if user is None:
-        flash('Invalid or expired token.', 'warning')
-        return redirect(url_for('general.reset_request'))
-    form = ResetPasswordForm()
-    if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        user.password = hashed_password
-        database.session.commit()
-        flash(f'Your password has been updated, you can now log in!', 'success')
-        return redirect(url_for('general.login'))
-    return render_template('reset_token.html', title='Reset Password', form=form)
 
 @general.route("/help/")
 def help():

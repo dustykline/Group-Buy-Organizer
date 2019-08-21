@@ -54,8 +54,7 @@ class CaseQuantityOrderForm(FlaskForm):
     submit = SubmitField('Update')
 
 
-class CaseSplitForm(FlaskForm):
-    hidden_field = HiddenField()
+class CreateCaseSplitForm(FlaskForm):
     piece_quantity = SelectField('Case Pieces To Pledge', coerce=int)
     submit = SubmitField('Submit')
 

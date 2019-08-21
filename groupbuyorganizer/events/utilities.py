@@ -70,12 +70,14 @@ class EventItem:
 
 
 class CaseSplitGroup:
-    def __init__(self, case_splits, packing, event_id):
+    def __init__(self, case_splits, packing, event_id, is_single=False):
         self.case_splits = case_splits
         self.packing = packing
         self.event_id = event_id
+        self.is_single = is_single
         self.active_splits = []
         self.complete_splits = []
+        self.single_split = None
         self.structure_lists()
 
     def structure_lists(self):
@@ -88,6 +90,11 @@ class CaseSplitGroup:
                 self.complete_splits.append(list_tuple)
             else:
                 self.active_splits.append(list_tuple)
+        if self.is_single == True:
+            if self.complete_splits:
+                self.single_split = self.complete_splits[0]
+            else:
+                self.single_split = self.active_splits[0]
 
     def how_many_active_cases(self):
         return len(self.active_splits)
@@ -101,6 +108,9 @@ class CaseSplitItem:
         self.commits = self._get_structured_commits()
         self.is_current_user_involved = self.check_if_current_user_involved()
         self.pieces_available = get_pieces_available_split_item(self.case_split.commits, self.packing)
+
+        # {% set form.piece_quantity.choices = x.form_choices %}
+        # {% set form.case_split_id = x.case_split.id %}
 
 
     def _get_structured_commits(self):
