@@ -47,15 +47,12 @@ class EditItemForm(FlaskForm):
 
 
 class CaseQuantityOrderForm(FlaskForm):
-    choicesList = []
-    for i in range(100):
-        choicesList.append((i, i))
-    quantity = SelectField('Cases To Order', coerce=int, choices=choicesList)
+    quantity = SelectField('Cases To Order', coerce=int)
     submit = SubmitField('Update')
 
 
 class CreateCaseSplitForm(FlaskForm):
-    piece_quantity = SelectField('Case Pieces To Pledge', coerce=int)
+    piece_quantity = SelectField('Pieces To Pledge', coerce=int)
     submit = SubmitField('Submit')
 
 

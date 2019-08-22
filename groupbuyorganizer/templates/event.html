@@ -16,8 +16,8 @@
                 <a class="btn btn-outline-success" href="{{ url_for('events.my_order', event_id=event.id, user_id=current_user.id) }}" role="button">My Order</a>
                 <a class="btn btn-outline-primary m-1" href="{{ url_for('events.event_total', event_id=event.id) }}" role="button">Master Order Review</a>
                 <a class="btn btn-outline-primary m-1" href="{{ url_for('events.event_total_user_breakdown', event_id=event.id) }}" role="button">User Breakdown</a>
-                <a class="btn btn-outline-secondary m-1" href="{{ url_for('events.event_edit', event_id=event.id) }}" role="button">Edit Event</a>
                 <a class="btn btn-outline-info m-1" href="{{ url_for('events.manage_payments', event_id=event.id) }}" role="button">Manage Payments</a>
+                <a class="btn btn-outline-secondary m-1" href="{{ url_for('events.event_edit', event_id=event.id) }}" role="button">Edit Event</a>
                 {% if remove_user_from_event_form.user_to_remove.choices %}
                     <form class="form-inline mt-2" method="POST">
                         {{ remove_user_from_event_form.hidden_tag() }}
@@ -35,27 +35,20 @@
     {% else %}
         <div class="card mb-5 mt-5">
             <div class="card-header">
-                <h3 class="card-title">Admin Panel</h3>
-                <h6 class="card-subtitle mb-2 text-muted">This form is only visible to administrators.</h6>
+                <h3 class="card-title">User Panel</h3>
+                {% if users_can_see_master_overview %}
+                    <h6 class="card-subtitle mb-2 text-muted">Use these buttons for group buy information.  Click
+                        "My Order" to see a nice summary of your group buy order.</h6>
+                {% else %}
+                    <h6 class="card-subtitle mb-2 text-muted">Click "My Order" to see a nice summary of your group buy
+                    order.</h6>
+                {% endif %}
             </div>
             <div class="card-header">
-                <a class="btn btn-outline-success m-1" href="{{ url_for('events.event_total', event_id=event.id) }}" role="button">Event Order Total</a>
-                <a class="btn btn-outline-success m-1" href="{{ url_for('events.event_total_user_breakdown', event_id=event.id) }}" role="button">User Breakdown</a>
-                <a class="btn btn-outline-secondary m-1" href="{{ url_for('events.event_edit', event_id=event.id) }}" role="button">Edit Event</a>
-                {% if remove_user_from_event_form.user_to_remove.choices %}
-                    <form class="form-inline float-right" method="POST">
-                        {{ remove_user_from_event_form.hidden_tag() }}
-                        <div class="input-group mb-2 mr-sm-2">
-                            {{ remove_user_from_event_form.user_to_remove.label(class="form-control-label mr-3") }}
-                            {{ remove_user_from_event_form.user_to_remove(class_="form-control") }}
-                        </div>
-                        <div class="form-check mb-2 mr-sm-2">
-                            {{ remove_user_from_event_form.submit(class="btn btn-outline-warning") }}
-                        </div>
-                    </form>
-                {% endif %}
-                {% if event.is_locked %}
-                    <a class="btn btn-outline-info m-1" href="{{ url_for('events.event_edit', event_id=event.id) }}" role="button">Manage Payments</a>
+                <a class="btn btn-outline-success" href="{{ url_for('events.my_order', event_id=event.id, user_id=current_user.id) }}" role="button">My Order</a>
+                {% if users_can_see_master_overview %}
+                    <a class="btn btn-outline-primary m-1" href="{{ url_for('events.event_total', event_id=event.id) }}" role="button">Master Order Review</a>
+                <a class="btn btn-outline-primary m-1" href="{{ url_for('events.event_total_user_breakdown', event_id=event.id) }}" role="button">User Breakdown</a>
                 {% endif %}
             </div>
         </div>
@@ -64,6 +57,7 @@
         {% if not event.is_locked and not event.is_closed %}
             <div class="alert alert-success mx-auto">
                 <h3><p class="text-center">Open</p></h3>
+                <hr>
                 <p class="text-center">This group buy event is currently open.  Add items in the form right below if you
                 don't see them already displayed below.  Click the name of the item to buy whole cases of it, or participate
                 in a case split.</p>
@@ -71,15 +65,17 @@
         {% elif event.is_closed %}
             <div class="alert alert-secondary mx-auto">
                 <h3><p class="text-center">Closed</p></h3>
+                <hr>
                 <p class="text-center">This group buy is marked as complete.</p>
             </div>
         {% elif event.is_locked %}
             <div class="alert alert-warning mx-auto">
                 <h3><p class="text-center">Locked - Pending Completion</p></h3>
+                <hr>
                 <p class="text-center">This group buy has been marked as locked by an administrator.  Transactions and
                 orders are locked into place, and cannot be modified.  Events are locked as they are winding down towards
-                completion, or if the administrator chooses to temporarily disable orders for whatever reason.  Talk
-                to the event organizer for more information.</p>
+                completion, or if the administrator chooses to temporarily disable orders for whatever reason.  Contact
+                the event organizer for more information.</p>
             </div>
         {% endif %}
     </div>

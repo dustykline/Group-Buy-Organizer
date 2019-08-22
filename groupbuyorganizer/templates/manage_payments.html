@@ -1,12 +1,10 @@
-asd
-
-{#{% extends "primary.html" %}#}
-{#{% block content %}#}
-{#        <nav aria-label="breadcrumb">#}
-{#            <ol class="breadcrumb">#}
-{#                <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('general.home') }}">Home</a></li>#}
-{#                <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('events.event', event_id=event.id) }}">{{ event.name }}</a></li>#}
-{#                <li class="breadcrumb-item active" aria-current="page">Manage Payments</li>#}
-{#            </ol>#}
-{#    </nav>#}
-{#{% endblock content %}#}
+{% extends "primary.html" %}
+{% block content %}
+    <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('general.home') }}">Home</a></li>
+                    <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('events.event', event_id=event.id) }}">{{ event.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Manage Payments</li>
+                </ol>
+        </nav>
+{% endblock content %}

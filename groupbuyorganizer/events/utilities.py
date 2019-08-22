@@ -109,15 +109,11 @@ class CaseSplitItem:
         self.is_current_user_involved = self.check_if_current_user_involved()
         self.pieces_available = get_pieces_available_split_item(self.case_split.commits, self.packing)
 
-        # {% set form.piece_quantity.choices = x.form_choices %}
-        # {% set form.case_split_id = x.case_split.id %}
-
-
     def _get_structured_commits(self):
         reversed_list = sorted(self.case_split.commits, key=lambda x: x.id, reverse=True)
         commit_list = []
         for commit in reversed_list:
-            commit_id_username = database.session.query(User.id, User.username).filter(CasePieceCommit.id ==
+            commit_id_username = database.session.query(User.id, User.username).filter(CasePieceCommit.event_id ==
                                                                     self.event_id, User.id == commit.user_id).first()
             commit_list.append((commit_id_username, commit))
         return commit_list
@@ -139,3 +135,17 @@ def get_pieces_available_split_item(case_split, packing):
     for commit in case_split:
         pieces_left -= commit.pieces_committed
     return pieces_left
+
+
+def return_qty_price_select_field(max_pieces, item_price, item_packing, whole_cases=False):
+    '''Taking in the item price, item packing, and maximum allowable pieces, this will return a nicely formatted list
+    for flask-wtf's SelectField, which displays the total piece sum next to the piece count.'''
+
+    choices_list = []
+    if whole_cases == False:
+        for i in range(max_pieces):
+            choices_list.append((i + 1, f'{i + 1}/{item_packing} - ${round((i + 1) * (item_price / item_packing), 2)}'))
+    else:
+        for i in range(max_pieces):
+            choices_list.append((i , f'{i} - ${round(i * item_price, 2)}'))
+    return choices_list

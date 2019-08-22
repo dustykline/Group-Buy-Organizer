@@ -54,10 +54,7 @@ class CasePieceCommit(database.Model):
     pieces_committed = database.Column(database.Integer, nullable=False)
 
 
-# haspaid = database.Table('has_paid',
-#              database.Column
-#                          )
-#
-# class HasPaid: #table
-#     user_id = 0
-#     event_id = 0
+# class HasPaid(database.Model):
+#     user_id = database.Column(database.Integer, database.ForeignKey('item.id'), nullable=False)
+#     event_id = database.Column(database.Integer, database.ForeignKey('event.id'), nullable=False)
+#     has_paid = database.Column(database.Boolean, nullable=False, default=False)

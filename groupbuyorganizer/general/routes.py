@@ -28,7 +28,8 @@ def home():
         flash('Event created!', 'success')
         return redirect(url_for('general.home'))
     return render_template('home.html', root_created = instance.root_created, home_event_list=home_event_list,
-                           registration_enabled = instance.registration_enabled, events=events, form=form, c=5)
+                           registration_enabled = instance.registration_enabled, events=events, form=form,
+                           users_can_see_master_overview=instance.users_can_see_master_overview)
 
 
 @general.route("/about/")

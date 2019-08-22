@@ -57,10 +57,18 @@
                                 <span class="badge badge-warning float-left m-2">Locked - Pending Completion</span>
                         {% endif %}
                         {% if current_user.is_admin %}
-                            <a class="btn btn-outline-secondary float-right m-1" href="{{ url_for('events.event_edit', event_id=item.event.id) }}" role="button">Edit Event</a>
+                            <a class="btn btn-outline-secondary float-right m-1" href="{{ url_for('events.event_edit',
+                            event_id=item.event.id) }}" role="button">Edit Event</a>
                             <a class="btn btn-outline-info float-right m-1" href="{{ url_for('events.manage_payments',
                             event_id=item.event.id) }}" role="button">Manage Payments</a>
                         {% endif %}
+                        {% if current_user.is_admin or users_can_see_master_overview %}
+                            <a class="btn btn-outline-primary float-right m-1" href="{{ url_for('events.event_total_user_breakdown',
+                            event_id=item.event.id) }}" role="button">User Breakdown</a>
+                            <a class="btn btn-outline-primary float-right m-1" href="{{ url_for('events.event_total',
+                            event_id=item.event.id) }}" role="button">Master Order Review</a>
+                        {% endif %}
+                        <a class="btn btn-outline-success float-right m-1" href="{{ url_for('events.my_order', event_id=item.event.id, user_id=current_user.id) }}" role="button">My Order</a>
                         <h3><a href="{{ url_for('events.event', event_id=item.event.id) }}">{{ item.event.name }}</a></h3>
                         <h6 class="card-subtitle mb-2 text-muted">Created {{ item.event.date_created.strftime('%x') }} by {{ item.added_by }}</h6>
                     </div>

@@ -4,11 +4,11 @@ import pdfkit
 
 from groupbuyorganizer import database
 from groupbuyorganizer.admin.models import Category, Instance, User
-from groupbuyorganizer.admin.utilities import admin_check
 from groupbuyorganizer.events.forms import CreateItemForm, CreateCaseSplitForm, CreateEventForm, CaseQuantityOrderForm,\
     EditItemForm, EventExtraChargeForm, EventNotesForm, RemoveUserFromEventForm
 from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Event, Item
-from groupbuyorganizer.events.utilities import CaseSplitGroup, EventItem, StructuredItemList
+from groupbuyorganizer.events.utilities import CaseSplitGroup, EventItem, return_qty_price_select_field, \
+    StructuredItemList
 
 
 events = Blueprint('events', __name__)
@@ -19,6 +19,7 @@ events = Blueprint('events', __name__)
 def event(event_id):
 
     # Item add form setup
+    instance = Instance.query.first()
     event = Event.query.get_or_404(event_id)
     available_categories = Category.query.order_by('name')
     categories_list = [(piece.id, piece.name) for piece in available_categories]
@@ -57,6 +58,9 @@ def event(event_id):
         return redirect(url_for('events.event', event_id=event_id))
 
     if remove_user_from_event_form.validate_on_submit():
+        if current_user.is_admin == False:
+            flash('Access denied', 'danger')
+            return redirect(url_for('general.home'))
         active_user = User.query.filter_by(id=remove_user_from_event_form.user_to_remove.data).first()
         case_buys = CaseBuy.query.filter_by(event_id=event_id, user_id=active_user.id).all()
         for case_buy in case_buys:
@@ -77,6 +81,7 @@ def event(event_id):
             else:
                 if case_split.is_complete == True:
                     case_split.is_complete = False
+        database.session.commit()
 
         database.session.commit()
         flash(f'All transactions for {active_user.username} successfully removed from event!', 'info')
@@ -84,13 +89,16 @@ def event(event_id):
 
     return render_template('event.html', event=event, form=form, title=f'{event.name} Overview',
                            structured_item_list=structured_item_list,
-                           remove_user_from_event_form=remove_user_from_event_form)
+                           remove_user_from_event_form=remove_user_from_event_form,
+                           users_can_see_master_overview=instance.users_can_see_master_overview)
 
 
 @events.route('/events/<int:event_id>/edit', methods=['GET', 'POST'])
 @login_required
 def event_edit(event_id):
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     event = Event.query.get_or_404(event_id)
     event_name_form = CreateEventForm()
     event_extra_charge_form = EventExtraChargeForm()
@@ -123,7 +131,9 @@ def event_edit(event_id):
 @events.route("/category_settings/<int:event_id>/remove/", methods=['GET'])
 @login_required
 def event_remove(event_id):
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     event = Event.query.get_or_404(event_id)
     database.session.delete(event)
     database.session.commit()
@@ -133,7 +143,9 @@ def event_remove(event_id):
 @events.route("/category_settings/<int:event_id>/lock/", methods=['GET'])
 @login_required
 def event_lock(event_id):
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     event = Event.query.get_or_404(event_id)
     event.is_locked = True
     database.session.commit()
@@ -144,7 +156,9 @@ def event_lock(event_id):
 @events.route("/category_settings/<int:event_id>/unlock/", methods=['GET'])
 @login_required
 def event_unlock(event_id):
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     event = Event.query.get_or_404(event_id)
     event.is_locked = False
     database.session.commit()
@@ -155,7 +169,9 @@ def event_unlock(event_id):
 @events.route("/category_settings/<int:event_id>/close/", methods=['GET'])
 @login_required
 def event_close(event_id):
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     event = Event.query.get_or_404(event_id)
     event.is_locked = True
     event.is_closed = True
@@ -167,7 +183,9 @@ def event_close(event_id):
 @events.route("/category_settings/<int:event_id>/open/", methods=['GET'])
 @login_required
 def event_open(event_id):
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     event = Event.query.get_or_404(event_id)
     event.is_closed = False
     database.session.commit()
@@ -191,13 +209,13 @@ def item(event_id, item_id):
 
     # Case Quantity Form
     order_case_form = CaseQuantityOrderForm()
+    order_case_form.quantity.choices = return_qty_price_select_field(100, item.price, item.packing,
+                                                                     whole_cases=True)
 
     # Create Case Splits
     create_case_split_form = CreateCaseSplitForm()
-    choicesList = []
-    for i in range(item.packing - 1):
-        choicesList.append((i + 1, i + 1))
-    create_case_split_form.piece_quantity.choices = choicesList
+    create_case_split_form.piece_quantity.choices = \
+        return_qty_price_select_field(item.packing - 1, item.price, item.packing)
 
     # Customized item/order view
     event_item = EventItem(item, event_id)
@@ -269,7 +287,9 @@ def item(event_id, item_id):
 @events.route('/events/<int:event_id>/items/<int:item_id>/remove/', methods=['GET'])
 @login_required
 def remove_item(event_id, item_id):
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     event = Event.query.get_or_404(event_id)
     item = Item.query.get_or_404(item_id)
     database.session.delete(item)
@@ -285,7 +305,7 @@ def event_total(event_id):
     if instance.users_can_see_master_overview == False:
         if current_user.is_admin == False:
             flash('Access denied', 'warning')
-            return redirect(url_for('general.home')) #todo check
+            return redirect(url_for('general.home'))
     return render_template('master_order_review.html', event=event, is_pdf=False,
                            users_can_see_master_overview=instance.users_can_see_master_overview, title=f'{event.name} '
         f'Order Overview')
@@ -352,8 +372,8 @@ def my_order(event_id, user_id):
     user = User.query.get_or_404(user_id)
     instance = Instance.query.first()
 
-    if instance.users_can_see_master_overview == False:
-        if current_user.is_admin == False:
+    if user_id != current_user.id:
+        if instance.users_can_see_master_overview == False and current_user.is_admin == False:
             flash('Access denied', 'warning')
             return redirect(url_for('general.home'))
 
@@ -364,7 +384,7 @@ def my_order(event_id, user_id):
 @events.route('/events/<int:event_id>/user_order/<int:user_id>/pdf/', methods=['GET', 'POST'])
 @login_required
 def my_order_pdf(event_id, user_id):
-    event = Event.query.get_or_404(event_id) #todo priv, primary arg
+    event = Event.query.get_or_404(event_id)
     user = User.query.get_or_404(user_id)
     instance = Instance.query.first()
 
@@ -387,17 +407,27 @@ def my_order_pdf(event_id, user_id):
 @login_required
 def manage_payments(event_id):
     event = Event.query.get_or_404(event_id)
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
+    users_case_buy = database.session.query(User.id, User.username).filter(event_id == Item.event_id, CaseBuy.item_id
+                                                                           == Item.id).all()
+    users_case_split = database.session.query(User.id, User.username).filter(event_id == Item.event_id,
+                                                                             CaseSplit.item_id == Item.id,
+                                                                             CasePieceCommit.user_id == User.id).all()
+    #set
     return render_template('manage_payments.html', event=event, title='Manage Payments')
 
 
-@events.route('/events/<int:event_id>/items/<int:item_id>/case_splits/<int:case_split_id>/remove/')
+@events.route('/events/<int:event_id>/items/<int:item_id>/case_splits/<int:case_split_id>/remove/', methods=['GET'])
 @login_required
 def remove_case_split(event_id, item_id, case_split_id):
     event = Event.query.get_or_404(event_id)
     item = Item.query.get_or_404(item_id)
     case_split = CaseSplit.query.get_or_404(case_split_id)
-    if case_split.started_by == current_user.id or current_user.is_admin:
+    commits = case_split.commits
+    if (case_split.started_by == current_user.id and len(case_split.commits == 1)
+        and case_split.commits[0].user_id == current_user.id) or current_user.is_admin:
         database.session.delete(case_split)
         database.session.commit()
         flash('Case split!', 'info')
@@ -413,9 +443,11 @@ def remove_case_split_pledge(event_id, item_id, case_split_id, commit_id):
     event = Event.query.get_or_404(event_id)
     item = Item.query.get_or_404(item_id)
     case_split = CaseSplit.query.get_or_404(case_split_id)
-    commit = CasePieceCommit.query.get_or_404(commit_id) #todo remove split if that was only commit
+    commit = CasePieceCommit.query.get_or_404(commit_id)
     if commit.user_id == current_user.id or current_user.is_admin:
         database.session.delete(commit)
+        if case_split.is_complete == True:
+            case_split.is_complete = False
         database.session.commit()
         if not case_split.commits:
             database.session.delete(case_split)
@@ -434,8 +466,8 @@ def case_split(event_id, item_id, case_split_id):
     event = Event.query.get_or_404(event_id)
     item = Item.query.get_or_404(item_id)
     case_split = CaseSplit.query.get_or_404(case_split_id)
-    case_split_group = CaseSplitGroup((case_split,), item.packing, event.id)
-    created_by = case_split_group.single_split[1]
+    case_split_group = CaseSplitGroup((case_split,), item.packing, event.id, is_single=True)
+    created_by = case_split_group.single_split[1][0]
     case_split_item = case_split_group.single_split[0]
 
     modify_case_split_form = CreateCaseSplitForm()
@@ -443,23 +475,73 @@ def case_split(event_id, item_id, case_split_id):
 
     # This is what prevents a single user from being the sole user of a case split, forcing him to just buy a
     # case.  Aside from that, this doesn't include the user itself in the count for the max items to pledge.
-    if len(case_split.commits) == 1 and case_split.commits[0].user_id == current_user.id:
-        pieces_reserved_so_far = 1
-    else:
-        for commit in case_split.commits:
-            if commit.user_id != current_user.id:
-                pieces_reserved_so_far += commit.pieces_committed
-    form_choices = []
-    for i in range(item.packing - pieces_reserved_so_far):
-        form_choices.append((i + 1, i + 1))
-    print(form_choices)
-    modify_case_split_form.piece_quantity.choices = form_choices
+    def how_many_pieces_reserved(commits, current_user_id):
+        '''Short function used twice to calculate how many items are already accounted for in this case split.'''
+        pieces_reserved_so_far = 0
+        if len(commits) == 1 and commits[0].user_id == current_user_id:
+            pieces_reserved_so_far = 1
+        else:
+            for commit in case_split.commits:
+                if commit.user_id != current_user_id:
+                    pieces_reserved_so_far += commit.pieces_committed
+        return pieces_reserved_so_far
+
+    pieces_reserved_so_far = how_many_pieces_reserved(case_split.commits, current_user.id)
+
+    modify_case_split_form.piece_quantity.choices = return_qty_price_select_field(item.packing - pieces_reserved_so_far,
+                                                                                  item.price, item.packing)
+    case_piece_commit = CasePieceCommit.query.filter_by(case_split_id=case_split.id,
+                                                        user_id=current_user.id).first()
 
     if modify_case_split_form.validate_on_submit():
-        #todo
-        flash('Case split created!', 'info')
-        return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
+        case_piece_commit = CasePieceCommit.query.filter_by(case_split_id=case_split.id, user_id=current_user.id).first()
+        if case_piece_commit:
+            # Validating there are enough pieces left.  Since javascript isn't implemented in this library (yet), the
+            # number of pieces in a case split can change without any warning to the user.
+            case_split = CaseSplit.query.filter_by(id=case_split_id).first()
+            if case_split.is_complete:
+                pieces_reserved_so_far = how_many_pieces_reserved(case_split.commits, current_user.id)
+                if modify_case_split_form.piece_quantity.data + pieces_reserved_so_far > item.packing:
+                    flash('This case split has closed in between you loading the previous page and clicking submit... '
+                          ' someone else beat you to it!  Start a new case split instead.', 'warning')
+                    return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
+            pieces_reserved_so_far = how_many_pieces_reserved(case_split.commits, current_user.id)
+            if modify_case_split_form.piece_quantity.data + pieces_reserved_so_far > item.packing:
+                flash('Items pledged exceeds what is currently available for this case split.  This occurs when someone'
+                      ' else places a pledge right before you.  Please resubmit a pledge with a different quantity, or '
+                      'otherwise create a new case split.', 'warning')
+                return redirect(url_for('events.case_split', event_id=event.id, item_id=item.id,
+                                        case_split_id=case_split.id))
 
-    return render_template('case_split.html', event_id=event.id, item_id=item.id, created_by=created_by,
-                           modify_case_split_form=modify_case_split_form, case_split=case_split_item,
-                           title='Participate in Case Split')
+            case_piece_commit.pieces_committed = modify_case_split_form.piece_quantity.data
+        else:
+            commit = CasePieceCommit(event_id=event.id, case_split_id=case_split.id,
+                                                             user_id=current_user.id,
+                                                 pieces_committed=modify_case_split_form.piece_quantity.data)
+            database.session.add(commit)
+        database.session.commit()
+
+        # Evaluate case split is_complete status
+        piece_sum = 0
+        for commit in case_split.commits:
+            piece_sum += commit.pieces_committed
+        if case_split.is_complete:
+            if piece_sum < item.packing:
+                case_split.is_complete = False
+                print('Toggle case split False')
+        else:
+            if piece_sum == item.packing:
+                case_split.is_complete = True
+                print('Toggle case split True')
+        database.session.commit()
+        flash('Case split updated!', 'success')
+        return redirect(url_for('events.case_split', event_id=event.id, item_id=item.id, case_split_id=case_split.id))
+
+    elif request.method == 'GET':
+
+        if case_piece_commit:
+            modify_case_split_form.piece_quantity.data = case_piece_commit.pieces_committed
+
+    return render_template('case_split.html', event=event, item=item, created_by=created_by,
+                           form=modify_case_split_form, case_split=case_split_item, is_locked=event.is_locked,
+                           title=f'{item.name} Case Split')

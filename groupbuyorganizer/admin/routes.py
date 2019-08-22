@@ -7,7 +7,7 @@ from datetime import timezone
 from groupbuyorganizer import database
 from groupbuyorganizer.admin.forms import ApplicationSettingsForm, CreateCategoryForm
 from groupbuyorganizer.admin.models import Category, Instance, User
-from groupbuyorganizer.admin.utilities import admin_check, admin_protector
+from groupbuyorganizer.admin.utilities import admin_protector
 from groupbuyorganizer.events.models import Event
 
 
@@ -16,7 +16,9 @@ admin = Blueprint('admin', __name__)
 @admin.route("/category_settings/", methods=['GET', 'POST'])
 @login_required
 def category_settings():
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     form = CreateCategoryForm()
     if form.validate_on_submit():
         category = Category(name=form.category_name.data)
@@ -32,7 +34,9 @@ def category_settings():
 @admin.route("/category_settings/<int:category_id>/edit/", methods=['GET', 'POST'])
 @login_required
 def category_edit(category_id):
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     category = Category.query.get_or_404(category_id)
     form = CreateCategoryForm()
     if form.validate_on_submit():
@@ -48,7 +52,9 @@ def category_edit(category_id):
 @admin.route("/categories/<int:category_id>/remove/", methods=['GET'])
 @login_required
 def category_remove(category_id):
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     category = Category.query.get_or_404(category_id)
     if category.id == 1:
         flash('Access denied', 'danger')
@@ -69,7 +75,9 @@ def category_remove(category_id):
 @admin.route("/user_settings/")
 @login_required
 def user_settings():
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     users = User.query.order_by(User.username.asc()).all()
     for user in users: # Making the DateTime database column human readable and converted to local timezone.
         ugly_string = user.date_created.replace(tzinfo=timezone.utc).astimezone(tz=None)
@@ -81,7 +89,9 @@ def user_settings():
 @admin.route("/user_settings/<int:user_id>/promote", methods=['GET'])
 @login_required
 def promote_user(user_id):
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     user = User.query.get_or_404(user_id)
     admin_protector(user)
     user.is_admin = True
@@ -93,7 +103,9 @@ def promote_user(user_id):
 @admin.route("/user_settings/<int:user_id>/demote")
 @login_required
 def demote_user(user_id):
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     user = User.query.get_or_404(user_id)
     admin_protector(user)
     user.is_admin = False
@@ -105,7 +117,9 @@ def demote_user(user_id):
 @admin.route("/user_settings/<int:user_id>/disable")
 @login_required
 def disable_user(user_id):
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     user = User.query.get_or_404(user_id)
     admin_protector(user)
     user.is_admin = False
@@ -118,7 +132,9 @@ def disable_user(user_id):
 @admin.route("/user_settings/<int:user_id>/enable")
 @login_required
 def enable_user(user_id):
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     user = User.query.get_or_404(user_id)
     admin_protector(user)
     user.disabled = False
@@ -126,12 +142,13 @@ def enable_user(user_id):
     flash(f'{user.username} has been re-enabled!', 'info')
     return redirect(url_for('admin.user_settings'))
 
-#####################################################
 
 @admin.route("/app_settings", methods=['GET', 'POST'])
 @login_required
 def app_settings():
-    admin_check(current_user)
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
     instance = Instance.query.first()
     form = ApplicationSettingsForm()
     if form.validate_on_submit():

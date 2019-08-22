@@ -5,14 +5,6 @@ from groupbuyorganizer import database
 from groupbuyorganizer.admin.models import User
 from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Item, Event
 
-def admin_check(user):
-    '''This protects against logged in users from accessing the admin pages, even if they know the direct URL.'''
-
-    if user.is_admin == False:
-        flash('Access denied.', 'danger')
-        return redirect(url_for('general.home'))
-
-
 def admin_protector(user):
     '''This function protects against those with admin power from manually inputting valid route commands to user
     functions, even when the buttons are disabled.
@@ -49,7 +41,7 @@ class HomeEvent:
 
         case_order_user_ids = database.session.query(User.id).filter(CaseBuy.event_id == self.event.id,
                                                                      User.id == CaseBuy.user_id).all()
-        case_split_user_ids = database.session.query(User.id).filter(CasePieceCommit.id == self.event.id,
+        case_split_user_ids = database.session.query(User.id).filter(CasePieceCommit.event_id == self.event.id,
                                                                      CasePieceCommit.user_id == User.id).all()
 
         total_user_set = set()
