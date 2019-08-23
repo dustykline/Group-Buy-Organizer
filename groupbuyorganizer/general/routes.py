@@ -8,6 +8,7 @@ from groupbuyorganizer.events.forms import CreateEventForm
 from groupbuyorganizer.events.models import Event
 from groupbuyorganizer.general.forms import LoginForm, RegistrationForm, UserOptionsForm
 
+
 general = Blueprint('general', __name__)
 
 @general.route("/events/")

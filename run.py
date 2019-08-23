@@ -7,4 +7,4 @@ from groupbuyorganizer.admin.models import *
 if __name__ == '__main__':
 
     # web_app.run(debug=True)
-    web_app.run(debug=True, host='0.0.0.0')
+    web_app.run(debug=True, host='0.0.0.0') #todo change at release

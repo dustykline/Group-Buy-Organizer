@@ -1,9 +1,10 @@
-from flask import flash, redirect, url_for
+from flask import flash
 from flask_login import current_user
 
 from groupbuyorganizer import database
 from groupbuyorganizer.admin.models import User
 from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Item, Event
+
 
 def admin_protector(user):
     '''This function protects against those with admin power from manually inputting valid route commands to user
@@ -17,21 +18,12 @@ def admin_protector(user):
 class HomeEvent:
     def __init__(self, event):
         self.event = event
-        self._case_list = self._get_case_list()
+        self._case_list = get_case_list()
         self.added_by = self.get_added_by()
         self.active_participants = self.get_active_participants()
         self.active_case_splits = self.get_active_case_splits()
         self.total_cases = self.get_total_cases()
         self.event_total = self.get_event_total()
-
-    def _get_case_list(self):
-        '''This query is used twice, so this function exists to reduce redundant operations.  It returns a list of both
-        case buys, and completed case splits.'''
-
-        case_buys = CaseBuy.query.filter_by(event_id=self.event.id).all()
-        case_splits = CaseSplit.query.filter_by(event_id=self.event.id).all()
-
-        return case_buys, case_splits
 
     def get_added_by(self):
         user = User.query.filter_by(id=Event.added_by).first()
@@ -49,12 +41,10 @@ class HomeEvent:
             total_user_set.add(user)
         for user in case_split_user_ids:
             total_user_set.add(user)
-
         return len(total_user_set)
 
 
     def get_active_case_splits(self):
-
         active_case_splits = database.session.query(CaseSplit.id).filter(CaseSplit.event_id == self.event.id,
                                                         CaseSplit.is_complete == False).all()
         return len(active_case_splits)

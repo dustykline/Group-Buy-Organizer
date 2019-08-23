@@ -4,6 +4,7 @@ from wtforms.validators import DataRequired, ValidationError
 
 from groupbuyorganizer.admin.models import Category
 
+
 class CreateCategoryForm(FlaskForm):
     category_name = StringField('Category Name', validators=[DataRequired()])
     submit = SubmitField('Submit')

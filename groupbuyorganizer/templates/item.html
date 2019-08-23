@@ -191,17 +191,21 @@
                     <div class="card-header">
                         {% if active_split[0].is_current_user_involved %}
                             <div class="alert alert-success" role="alert">
-                                <h3 class="card-title text-white"><a href="{{ url_for('events.case_split', event_id=event.id, item_id=item.id, case_split_id=active_split[0].case_split.id) }}">{{ item.packing - active_split[0].pieces_available }} / {{ item.packing }} Items Pledged</a></h3>
+                                <h3 class="card-title text-white"><a href="{{ url_for('events.case_split',
+                                event_id=event.id, item_id=item.id, case_split_id=active_split[0].case_split.id) }}">{{ item.packing
+                                - active_split[0].pieces_available }} / {{ item.packing }} Items Pledged</a></h3>
                             </div>
                         {% else %}
                             <div class="alert alert-secondary" role="alert">
-                                <h3 class="card-title"><a href="{{ url_for('events.case_split', event_id=event.id, item_id=item.id, case_split_id=active_split[0].case_split.id) }}">{{ item.packing - active_split[0].pieces_available }} / {{ item.packing }} Items Pledged</a></h3>
+                                <h3 class="card-title"><a href="{{ url_for('events.case_split', event_id=event.id,
+                                item_id=item.id, case_split_id=active_split[0].case_split.id) }}">{{ item.packing -
+                                active_split[0].pieces_available }} / {{ item.packing }} Items Pledged</a></h3>
                             </div>
                         {% endif %}
-                        {% if active_split %}
-                            <div class="float-right">
-
-                            </div>
+                        {% if current_user.is_admin %}
+                            <a class="btn btn-outline-danger float-right" href="{{ url_for('events.remove_case_split',
+                                    event_id=event.id, item_id=item.id, case_split_id=active_split[0].case_split.id) }}"
+                               role="button">Delete Case Split</a>
                         {% endif %}
                         <h6 class="card-subtitle mb-2 text-muted">Added by {{ active_split[1].username }}</h6>
                     </div>

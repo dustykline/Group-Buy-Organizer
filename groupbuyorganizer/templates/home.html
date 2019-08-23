@@ -65,8 +65,8 @@
                         {% if current_user.is_admin or users_can_see_master_overview %}
                             <a class="btn btn-outline-primary float-right m-1" href="{{ url_for('events.event_total_user_breakdown',
                             event_id=item.event.id) }}" role="button">User Breakdown</a>
-                            <a class="btn btn-outline-primary float-right m-1" href="{{ url_for('events.event_total',
-                            event_id=item.event.id) }}" role="button">Master Order Review</a>
+                            <a class="btn btn-outline-primary float-right m-1" href="{{ url_for('events.event_summary',
+                            event_id=item.event.id) }}" role="button">Order Summary</a>
                         {% endif %}
                         <a class="btn btn-outline-success float-right m-1" href="{{ url_for('events.my_order', event_id=item.event.id, user_id=current_user.id) }}" role="button">My Order</a>
                         <h3><a href="{{ url_for('events.event', event_id=item.event.id) }}">{{ item.event.name }}</a></h3>

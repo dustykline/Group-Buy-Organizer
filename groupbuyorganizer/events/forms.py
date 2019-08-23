@@ -1,9 +1,9 @@
-from flask import request
 from flask_wtf import FlaskForm
-from wtforms import DecimalField, HiddenField, IntegerField, SelectField, StringField, SubmitField, TextAreaField
+from wtforms import DecimalField, IntegerField, SelectField, StringField, SubmitField, TextAreaField
 from wtforms.validators import InputRequired, DataRequired, ValidationError
 
 from groupbuyorganizer.events.models import Event, Item
+
 
 class CreateEventForm(FlaskForm):
     event_name = StringField('Event Name', validators=[DataRequired()])

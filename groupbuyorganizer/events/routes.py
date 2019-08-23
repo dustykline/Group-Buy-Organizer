@@ -8,7 +8,7 @@ from groupbuyorganizer.events.forms import CreateItemForm, CreateCaseSplitForm, 
     EditItemForm, EventExtraChargeForm, EventNotesForm, RemoveUserFromEventForm
 from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Event, Item
 from groupbuyorganizer.events.utilities import CaseSplitGroup, EventItem, return_qty_price_select_field, \
-    StructuredItemList
+    StructuredEventItemList
 
 
 events = Blueprint('events', __name__)
@@ -47,7 +47,7 @@ def event(event_id):
                                                             == Category.id).order_by(Category.name, Item.name).all()
     structured_item_list = None
     if items:
-        structured_item_list = StructuredItemList(items, event_id)
+        structured_item_list = StructuredEventItemList(items, event_id)
 
     if form.validate_on_submit() and form.item_name.data:
         item = Item(name=form.item_name.data, price=form.price.data, packing=form.packing.data,
@@ -128,6 +128,7 @@ def event_edit(event_id):
                            event_extra_charge_form=event_extra_charge_form, event_notes_form=event_notes_form,
                            event=event)
 
+
 @events.route("/category_settings/<int:event_id>/remove/", methods=['GET'])
 @login_required
 def event_remove(event_id):
@@ -139,6 +140,7 @@ def event_remove(event_id):
     database.session.commit()
     flash('Event deleted!', 'info')
     return redirect(url_for('general.home'))
+
 
 @events.route("/category_settings/<int:event_id>/lock/", methods=['GET'])
 @login_required
@@ -191,6 +193,7 @@ def event_open(event_id):
     database.session.commit()
     flash('Event opened!', 'info')
     return redirect(url_for('events.event_edit', event_id=event_id))
+
 
 @events.route('/events/<int:event_id>/items/<int:item_id>/', methods=['GET', 'POST'])
 @login_required
@@ -284,6 +287,7 @@ def item(event_id, item_id):
                            order_case_form=order_case_form, event=event, item=event_item,
                            create_case_split_form=create_case_split_form, title=f'{item.name} Overview')
 
+
 @events.route('/events/<int:event_id>/items/<int:item_id>/remove/', methods=['GET'])
 @login_required
 def remove_item(event_id, item_id):
@@ -297,22 +301,31 @@ def remove_item(event_id, item_id):
     flash('Item successfully removed!', 'info')
     return redirect(url_for('events.event', event_id=event_id))
 
-@events.route('/events/<int:event_id>/event_total/')
+
+@events.route('/events/<int:event_id>/event_summary/')
 @login_required
-def event_total(event_id):
+def event_summary(event_id):
     event = Event.query.get_or_404(event_id)
     instance = Instance.query.first()
     if instance.users_can_see_master_overview == False:
         if current_user.is_admin == False:
             flash('Access denied', 'warning')
             return redirect(url_for('general.home'))
-    return render_template('master_order_review.html', event=event, is_pdf=False,
-                           users_can_see_master_overview=instance.users_can_see_master_overview, title=f'{event.name} '
-        f'Order Overview')
 
-@events.route('/events/<int:event_id>/event_total/pdf')
+    items = database.session.query(Item, Category.name).filter_by(event_id=event.id).join(Category, Item.category_id
+                                                          == Category.id).order_by(Category.name, Item.name).all()
+    structured_item_list = None
+    if items:
+        structured_item_list = StructuredEventItemList(items, event_id)
+
+    return render_template('event_summary.html', event=event, is_pdf=False, structured_item_list=3,
+                           users_can_see_master_overview=instance.users_can_see_master_overview, title=f'{event.name} '
+        f'Summary')
+
+
+@events.route('/events/<int:event_id>/event_summary/pdf')
 @login_required
-def event_total_pdf(event_id):
+def event_summary_pdf(event_id):
     event = Event.query.get_or_404(event_id)
     instance = Instance.query.first()
     if instance.users_can_see_master_overview == False:
@@ -321,11 +334,11 @@ def event_total_pdf(event_id):
             return redirect(url_for('general.home'))
 
     config = pdfkit.configuration(wkhtmltopdf=instance.wkhtmltopdf_path)
-    rendered = render_template('master_order_review.html', is_pdf=True, event=event, title=f'{event.name} Order Overview')
+    rendered = render_template('event_summary.html', is_pdf=True, event=event, title=f'{event.name} Order Overview')
     pdf = pdfkit.from_string(rendered, False, configuration=config, options={'quiet': ''})
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'attachment; filename=Order_Overview.pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=Order_Summary.pdf'
     return response
 
 
@@ -343,6 +356,7 @@ def event_total_user_breakdown(event_id):
     return render_template('user_breakdown.html', event=event, is_pdf=False,
                            users_can_see_master_overview=instance.users_can_see_master_overview, title=f'{event.name} '
         f'- Case Breakdown')
+
 
 @events.route('/events/<int:event_id>/event_total_user_breakdown/pdf/', methods=['GET'])
 @login_required
@@ -380,6 +394,7 @@ def my_order(event_id, user_id):
     return render_template('my_order.html', event=event, is_pdf=False, user_name = user.username,
                            users_can_see_master_overview=instance.users_can_see_master_overview,
                            title=f"{user.username}'s order")
+
 
 @events.route('/events/<int:event_id>/user_order/<int:user_id>/pdf/', methods=['GET', 'POST'])
 @login_required
@@ -422,19 +437,18 @@ def manage_payments(event_id):
 @events.route('/events/<int:event_id>/items/<int:item_id>/case_splits/<int:case_split_id>/remove/', methods=['GET'])
 @login_required
 def remove_case_split(event_id, item_id, case_split_id):
+    if current_user.is_admin == False:
+        flash('Access denied', 'danger')
+        return redirect(url_for('general.home'))
+
     event = Event.query.get_or_404(event_id)
     item = Item.query.get_or_404(item_id)
     case_split = CaseSplit.query.get_or_404(case_split_id)
-    commits = case_split.commits
-    if (case_split.started_by == current_user.id and len(case_split.commits == 1)
-        and case_split.commits[0].user_id == current_user.id) or current_user.is_admin:
-        database.session.delete(case_split)
-        database.session.commit()
-        flash('Case split!', 'info')
-        return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
-    else:
-        flash('Access denied', 'danger')
-        return redirect(url_for('general.home'))
+    database.session.delete(case_split)
+    database.session.commit()
+    flash('Case split removed!', 'info')
+    return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
+
 
 @events.route('/events/<int:event_id>/items/<int:item_id>/case_splits/<int:case_split_id>/commits/<int:commit_id>/remove',
     methods=['GET'])

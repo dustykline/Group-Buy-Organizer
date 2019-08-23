@@ -8,7 +8,6 @@ from groupbuyorganizer import database
 from groupbuyorganizer.admin.forms import ApplicationSettingsForm, CreateCategoryForm
 from groupbuyorganizer.admin.models import Category, Instance, User
 from groupbuyorganizer.admin.utilities import admin_protector
-from groupbuyorganizer.events.models import Event
 
 
 admin = Blueprint('admin', __name__)
@@ -161,8 +160,6 @@ def app_settings():
     elif request.method == 'GET':
         form.registration_enabled.data = instance.registration_enabled
         form.users_can_see_master_overview.data = instance.users_can_see_master_overview
-
-        print(instance.wkhtmltopdf_path)
         if instance.wkhtmltopdf_path is not None:
             form.wkhtmltopdf_path.data = instance.wkhtmltopdf_path
     return render_template('app_settings.html', title='Application Settings', form=form)

@@ -5,15 +5,16 @@
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('general.home') }}">Home</a></li>
                     <li class="breadcrumb-item" aria-current="page"><a href="{{ url_for('events.event', event_id=event.id) }}">{{ event.name }}</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Event Total</li>
+                    <li class="breadcrumb-item active" aria-current="page">Event Summary</li>
                 </ol>
         </nav>
     {% endif %}
-    {% if cases %}
+    {% if structured_item_list %}
         <div class="container text-center mb-5 mt-5 border border-primary rounded" style="width: 18rem;">
             <p class="font-weight-bold mt-3">Want a PDF of this page to save?</p>
             <img src="{{ url_for("static", filename="pdf.svg") }}" width="90" height="90" alt="PDF Icon" class="m-3">
-            <a class="btn btn-outline-primary m-3" href="#" role="button">Generate PDF</a>
+            <a class="btn btn-outline-primary m-3" href="{{ url_for("events.event_summary_pdf",
+            event_id=event.id) }}" role="button">Generate PDF</a>
         </div>
     {% else %}
         <div class="container">

@@ -1,10 +1,11 @@
 from flask_login import current_user
 
 from groupbuyorganizer import database
-from groupbuyorganizer.admin.models import Category, User
-from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Event, Item
+from groupbuyorganizer.admin.models import User
+from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit
 
-class StructuredItemList:
+
+class StructuredEventItemList:
 
     def __init__(self, item_list, event_id):
         self.item_list = item_list
@@ -23,6 +24,11 @@ class StructuredItemList:
                 categorized_items = []
             categorized_items.append(EventItem(group[0], self.event_id))
         self.group_lists.append(GroupList(current_category, categorized_items))
+
+
+class StructuredSummaryItemList:
+    def __init__(self):
+        pass
 
 
 class GroupList:
@@ -149,3 +155,11 @@ def return_qty_price_select_field(max_pieces, item_price, item_packing, whole_ca
         for i in range(max_pieces):
             choices_list.append((i , f'{i} - ${round(i * item_price, 2)}'))
     return choices_list
+
+def get_case_list(event_id): #todo
+    '''This query is used twice, so this function exists to reduce redundant operations.  It returns a list of both
+    case buys, and completed case splits.'''
+
+    case_buys = CaseBuy.query.filter_by(event_id=event_id).all()
+    case_splits = CaseSplit.query.filter_by(event_id=event_id).all()
+    return case_buys, case_splits
