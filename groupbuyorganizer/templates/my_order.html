@@ -9,12 +9,57 @@
             </ol>
         </nav>
     {% endif %}
-    {% if cases %}
+    {% if user_active and not is_pdf %}
         <div class="container text-center mb-5 mt-5 border border-primary rounded" style="width: 18rem;">
             <p class="font-weight-bold mt-3">Want a PDF of this page to save?</p>
             <img src="{{ url_for("static", filename="pdf.svg") }}" width="90" height="90" alt="PDF Icon" class="m-3">
-            <a class="btn btn-outline-primary m-3" href="#" role="button">Generate PDF</a>
+            <a class="btn btn-outline-primary m-3" href="{{ url_for('events.my_order_pdf', event_id=event.id,
+                    user_id=user_id) }}" role="button">Generate PDF</a>
         </div>
+    {% endif %}
+    {% if user_active %}
+        {% for group in structured_item_list.group_lists %}
+            <div class="container mb-4">
+                <h3>{{ group.category_name }}</h3>
+                <table class="table">
+                    <thead class="thead-light">
+                        <tr>
+                            <th scope="col">Item Name</th>
+                            <th scope="col">Packing</th>
+                            <th scope="col">Case Price</th>
+                            <th scope="col">Price Per Piece</th>
+                            <th scope="col"># Cases Bought</th>
+                            <th scope="col">Case Splits Involved In</th>
+                            <th scope="col">Pieces You've Locked In</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in group.items%}
+                            <tr>
+                                <th scope="row">{{ item.item_name }}</th>
+                                <td>{{ item.packing }} / 1</td>
+                                <td>{{ "$%.2f"|format(item.case_price) }}</td>
+                                <td>{{ "$%.2f"|format(item.piece_price) }}</td>
+                                <td class="font-weight-bold">{{ item.cases_you_bought }}</td>
+                                {% if item.case_splits_you_were_in %}
+                                    <td class="font-weight-bold">{{ item.cases_splits_you_were_in }}</td>
+                                {% else %}
+                                    <td class="text-muted">---</td>
+                                {% endif %}
+                                {% if item.pieces_reserved %}
+                                    <td class="font-weight-bold">{{ item.pieces_reserved }}</td>
+                                {% else %}
+                                    <td class="text-muted">---</td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="container mt-5 mb-5">
+                case splits go here
+            </div>
+        {% endfor %}
     {% else %}
         <div class="container">
             <div class="alert alert-info mx-auto">

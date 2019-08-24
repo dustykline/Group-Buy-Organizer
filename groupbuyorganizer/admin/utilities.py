@@ -4,6 +4,7 @@ from flask_login import current_user
 from groupbuyorganizer import database
 from groupbuyorganizer.admin.models import User
 from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Item, Event
+from groupbuyorganizer.events.utility_objects import get_active_participants, get_case_list
 
 
 def admin_protector(user):
@@ -18,9 +19,9 @@ def admin_protector(user):
 class HomeEvent:
     def __init__(self, event):
         self.event = event
-        self._case_list = get_case_list()
+        self.case_list = get_case_list(self.event.id)
         self.added_by = self.get_added_by()
-        self.active_participants = self.get_active_participants()
+        self.active_participants = get_active_participants(self.event.id, return_length=True)
         self.active_case_splits = self.get_active_case_splits()
         self.total_cases = self.get_total_cases()
         self.event_total = self.get_event_total()
@@ -28,20 +29,6 @@ class HomeEvent:
     def get_added_by(self):
         user = User.query.filter_by(id=Event.added_by).first()
         return user.username
-
-    def get_active_participants(self):
-
-        case_order_user_ids = database.session.query(User.id).filter(CaseBuy.event_id == self.event.id,
-                                                                     User.id == CaseBuy.user_id).all()
-        case_split_user_ids = database.session.query(User.id).filter(CasePieceCommit.event_id == self.event.id,
-                                                                     CasePieceCommit.user_id == User.id).all()
-
-        total_user_set = set()
-        for user in case_order_user_ids:
-            total_user_set.add(user)
-        for user in case_split_user_ids:
-            total_user_set.add(user)
-        return len(total_user_set)
 
 
     def get_active_case_splits(self):
@@ -51,20 +38,20 @@ class HomeEvent:
 
     def get_total_cases(self):
         total_count = 0
-        for case_order in self._case_list[0]:
+        for case_order in self.case_list[0]:
             total_count += case_order.quantity
-        for case_split in self._case_list[1]:
+        for case_split in self.case_list[1]:
             if case_split.is_complete == True:
                 total_count += 1
         return total_count
 
     def get_event_total(self):
         total_cost = 0
-        for case_order in self._case_list[0]:
+        for case_order in self.case_list[0]: #todo
             item = Item.query.filter_by(id=case_order.item_id).first()
             total_cost += (case_order.quantity * item.price)
 
-        for case_split in self._case_list[1]:
+        for case_split in self.case_list[1]:
             if case_split.is_complete == True:
                 item = Item.query.filter_by(id=case_split.item_id).first()
                 total_cost += item.price

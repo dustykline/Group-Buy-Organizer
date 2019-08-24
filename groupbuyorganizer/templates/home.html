@@ -59,8 +59,6 @@
                         {% if current_user.is_admin %}
                             <a class="btn btn-outline-secondary float-right m-1" href="{{ url_for('events.event_edit',
                             event_id=item.event.id) }}" role="button">Edit Event</a>
-                            <a class="btn btn-outline-info float-right m-1" href="{{ url_for('events.manage_payments',
-                            event_id=item.event.id) }}" role="button">Manage Payments</a>
                         {% endif %}
                         {% if current_user.is_admin or users_can_see_master_overview %}
                             <a class="btn btn-outline-primary float-right m-1" href="{{ url_for('events.event_total_user_breakdown',

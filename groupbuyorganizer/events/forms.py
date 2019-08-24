@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import DecimalField, IntegerField, SelectField, StringField, SubmitField, TextAreaField
+from wtforms import DecimalField, HiddenField, IntegerField, SelectField, StringField, SubmitField, TextAreaField
 from wtforms.validators import InputRequired, DataRequired, ValidationError
 
 from groupbuyorganizer.events.models import Event, Item
@@ -31,11 +31,6 @@ class CreateItemForm(FlaskForm):
     packing = IntegerField('Case packing For Item', validators=[DataRequired()])
     category_id = SelectField('Select Item Category', coerce=int, validators=[InputRequired()])
     submit = SubmitField('Submit')
-
-    def validate_item_name(self, item_name):
-        item = Item.query.filter_by(name=item_name.data).first()
-        if item:
-            raise ValidationError('That item name is taken. Please choose a different one.')
 
 
 class EditItemForm(FlaskForm):

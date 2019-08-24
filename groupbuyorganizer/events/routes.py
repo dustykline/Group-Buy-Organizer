@@ -7,8 +7,8 @@ from groupbuyorganizer.admin.models import Category, Instance, User
 from groupbuyorganizer.events.forms import CreateItemForm, CreateCaseSplitForm, CreateEventForm, CaseQuantityOrderForm,\
     EditItemForm, EventExtraChargeForm, EventNotesForm, RemoveUserFromEventForm
 from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Event, Item
-from groupbuyorganizer.events.utilities import CaseSplitGroup, EventItem, return_qty_price_select_field, \
-    StructuredEventItemList
+from groupbuyorganizer.events.utility_functions import is_user_active, return_qty_price_select_field
+from groupbuyorganizer.events.utility_objects import CaseSplitGroup, EventItem, StructuredEventItemList, UserTotalItem
 
 
 events = Blueprint('events', __name__)
@@ -312,13 +312,19 @@ def event_summary(event_id):
             flash('Access denied', 'warning')
             return redirect(url_for('general.home'))
 
-    items = database.session.query(Item, Category.name).filter_by(event_id=event.id).join(Category, Item.category_id
-                                                          == Category.id).order_by(Category.name, Item.name).all()
-    structured_item_list = None
-    if items:
-        structured_item_list = StructuredEventItemList(items, event_id)
+    case_buy_items = database.session.query(Item, Category.name).filter(Item.event_id == event.id,
+                                                                        Item.id == CaseBuy.item_id)\
+                                                        .join(Category, Item.category_id == Category.id)\
+                                                        .order_by(Category.name, Item.name).all()
+    # case_split_items = database.session.query(Item, Category.name).filter
+    # print(case_split_items)
 
-    return render_template('event_summary.html', event=event, is_pdf=False, structured_item_list=3,
+    merged_items = set()
+    structured_item_list = None
+    if case_buy_items:
+        structured_item_list = StructuredEventItemList(case_buy_items, event_id)
+
+    return render_template('event_summary.html', event=event, is_pdf=False, structured_item_list=structured_item_list,
                            users_can_see_master_overview=instance.users_can_see_master_overview, title=f'{event.name} '
         f'Summary')
 
@@ -333,6 +339,7 @@ def event_summary_pdf(event_id):
             flash('Access denied', 'warning')
             return redirect(url_for('general.home'))
 
+    # PDF Setup
     config = pdfkit.configuration(wkhtmltopdf=instance.wkhtmltopdf_path)
     rendered = render_template('event_summary.html', is_pdf=True, event=event, title=f'{event.name} Order Overview')
     pdf = pdfkit.from_string(rendered, False, configuration=config, options={'quiet': ''})
@@ -342,20 +349,22 @@ def event_summary_pdf(event_id):
     return response
 
 
-@events.route('/events/<int:event_id>/event_total_user_breakdown/', methods=['GET'])
+@events.route('/events/<int:event_id>/event_total_user_breakdown/', methods=['GET', 'POST'])
 @login_required
 def event_total_user_breakdown(event_id):
     event = Event.query.get_or_404(event_id)
     instance = Instance.query.first()
-
     if instance.users_can_see_master_overview == False:
         if current_user.is_admin == False:
             flash('Access denied', 'warning')
             return redirect(url_for('general.home'))
 
-    return render_template('user_breakdown.html', event=event, is_pdf=False,
-                           users_can_see_master_overview=instance.users_can_see_master_overview, title=f'{event.name} '
-        f'- Case Breakdown')
+    user_total_object = UserTotalItem(event)
+    main_query_vars = True
+
+    return render_template('user_breakdown.html', event=event, is_pdf=False, breakdown_object=main_query_vars,
+                           users_can_see_master_overview=instance.users_can_see_master_overview,
+                           user_total_object=user_total_object, title=f'{event.name} Event Total -- User Breakdown')
 
 
 @events.route('/events/<int:event_id>/event_total_user_breakdown/pdf/', methods=['GET'])
@@ -368,14 +377,18 @@ def event_total_user_breakdown_pdf(event_id):
         if current_user.is_admin == False:
             flash('Access denied', 'warning')
             return redirect(url_for('general.home'))
+    #todo wire in pdf route the same way as html page for table building logic
+    user_total_object = UserTotalItem(event)
+    breakdown_object = 2 #todo
 
+    # PDF Setup
     config = pdfkit.configuration(wkhtmltopdf=instance.wkhtmltopdf_path)
-    rendered = render_template('user_breakdown.html', is_pdf=True, event=event,
-                               title=f'{event.name} - Case Breakdown')
+    rendered = render_template('user_breakdown.html', is_pdf=True, event=event, user_total_object=user_total_object,
+                               title=f'{event.name} - Case Breakdown', breakdown_object=breakdown_object)
     pdf = pdfkit.from_string(rendered, False, configuration=config, options={'quiet': ''})
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'attachment; filename=Event Overview - User Breakdown.pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=Event_Overview_User_Breakdown.pdf'
     return response
 
 
@@ -391,7 +404,12 @@ def my_order(event_id, user_id):
             flash('Access denied', 'warning')
             return redirect(url_for('general.home'))
 
-    return render_template('my_order.html', event=event, is_pdf=False, user_name = user.username,
+    user_active = is_user_active(user.id, event_id)
+
+
+
+    return render_template('my_order.html', event=event, is_pdf=False, user_name = user.username, user_id=user.id,
+                           user_active=user_active,
                            users_can_see_master_overview=instance.users_can_see_master_overview,
                            title=f"{user.username}'s order")
 
@@ -408,30 +426,17 @@ def my_order_pdf(event_id, user_id):
             flash('Access denied', 'warning')
             return redirect(url_for('general.home'))
 
+    user_active = is_user_active(user.id, event_id)
+
+    # PDF Setup
     config = pdfkit.configuration(wkhtmltopdf=instance.wkhtmltopdf_path)
-    rendered = render_template('my_order.html', is_pdf=True, event=event,
+    rendered = render_template('my_order.html', is_pdf=True, event=event, user_active=user_active, user_id=user.id,
                                title=f"{user.username}'s order")
     pdf = pdfkit.from_string(rendered, False, configuration=config, options={'quiet': ''})
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = f'attachment; filename=Order_Overview.pdf'
     return response
-
-
-@events.route('/events/<int:event_id>/manage_payments/', methods=['GET'])
-@login_required
-def manage_payments(event_id):
-    event = Event.query.get_or_404(event_id)
-    if current_user.is_admin == False:
-        flash('Access denied', 'danger')
-        return redirect(url_for('general.home'))
-    users_case_buy = database.session.query(User.id, User.username).filter(event_id == Item.event_id, CaseBuy.item_id
-                                                                           == Item.id).all()
-    users_case_split = database.session.query(User.id, User.username).filter(event_id == Item.event_id,
-                                                                             CaseSplit.item_id == Item.id,
-                                                                             CasePieceCommit.user_id == User.id).all()
-    #set
-    return render_template('manage_payments.html', event=event, title='Manage Payments')
 
 
 @events.route('/events/<int:event_id>/items/<int:item_id>/case_splits/<int:case_split_id>/remove/', methods=['GET'])

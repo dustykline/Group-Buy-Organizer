@@ -235,7 +235,7 @@
                                     {% endif %}
                                         <td># {{ active_split[0].commits|length - loop.index0 }}</td>
                                         <td>{{ commit[0][1] }}</td>
-                                            <td>{{ commit[1].pieces_committed }}</td>
+                                             <td>{{ commit[1].pieces_committed }} -- {{ "$%.2f"|format((item.price/item.packing) * commit[1].pieces_committed) }}</td>
                                         {% if not event.is_locked %}
                                             {% if current_user.is_admin or active_split.is_current_user_involved %}
                                                 <td><a class="btn btn-outline-danger" href="{{ url_for('events.remove_case_split_pledge',
@@ -315,7 +315,7 @@
                                     {% endif %}
                                         <td># {{ active_split[0].commits|length - loop.index0 }}</td>
                                         <td>{{ commit[0][1] }}</td>
-                                            <td>{{ commit[1].pieces_committed }}</td>
+                                        <td>{{ commit[1].pieces_committed }} -- {{ "$%.2f"|format((item.price/item.packing) * commit[1].pieces_committed) }}</td>
                                         {% if not event.is_locked %}
                                             {% if current_user.is_admin or active_split.is_current_user_involved %}
                                                 <td><a class="btn btn-outline-danger" href="{{ url_for('events.remove_case_split_pledge',

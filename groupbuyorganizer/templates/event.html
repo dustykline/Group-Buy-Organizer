@@ -16,7 +16,6 @@
                 <a class="btn btn-outline-success" href="{{ url_for('events.my_order', event_id=event.id, user_id=current_user.id) }}" role="button">My Order</a>
                 <a class="btn btn-outline-primary m-1" href="{{ url_for('events.event_summary', event_id=event.id) }}" role="button">Order Summary</a>
                 <a class="btn btn-outline-primary m-1" href="{{ url_for('events.event_total_user_breakdown', event_id=event.id) }}" role="button">User Breakdown</a>
-                <a class="btn btn-outline-info m-1" href="{{ url_for('events.manage_payments', event_id=event.id) }}" role="button">Manage Payments</a>
                 <a class="btn btn-outline-secondary m-1" href="{{ url_for('events.event_edit', event_id=event.id) }}" role="button">Edit Event</a>
                 {% if remove_user_from_event_form.user_to_remove.choices %}
                     <form class="form-inline mt-2" method="POST">
