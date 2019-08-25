@@ -26,6 +26,9 @@ class Item(database.Model):
     case_buys = database.relationship('CaseBuy', backref='item', cascade='all, delete-orphan', lazy='dynamic')
     case_splits = database.relationship('CaseSplit', backref='item', cascade='all, delete-orphan', lazy='dynamic')
 
+    def __repr__(self):
+        return f"{self.name}"
+
 
 class CaseBuy(database.Model):
     id = database.Column(database.Integer, primary_key=True)
@@ -50,7 +53,8 @@ class CasePieceCommit(database.Model):
     committed_on = database.Column(database.DateTime, nullable=False, default=datetime.utcnow)
     event_id = database.Column(database.Integer, database.ForeignKey('event.id'), nullable=False)
     case_split_id = database.Column(database.Integer, database.ForeignKey('case_split.id'), nullable=False)
-    user_id = database.Column(database.Integer, database.ForeignKey('item.id'), nullable=False)
+    user_id = database.Column(database.Integer, database.ForeignKey('user.id'), nullable=False)
+    item_id = database.Column(database.Integer, database.ForeignKey('item.id'), nullable=False)
     pieces_committed = database.Column(database.Integer, nullable=False)
 
 
