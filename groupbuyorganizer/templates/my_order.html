@@ -111,10 +111,10 @@
                                     <tr>
                                         {% if commit[0][0] == user_id %}
                                             <th scope="row">{{ commit[0][1] }}</th>
-                                            <th scope="row">{{ commit[1].pieces_committed }} / {{ user_split[0].packing }}</th>
+                                            <th scope="row">{{ commit[1].pieces_committed }} / {{ user_split[0].packing }} -- {{ "$%.2f"|format(commit[2]) }}</th>
                                         {% else %}
                                             <td>{{ commit[0][1] }}</td>
-                                            <td>{{ commit[1].pieces_committed }} / {{ user_split[0].packing }}</td>
+                                            <td>{{ commit[1].pieces_committed }} / {{ user_split[0].packing }} -- {{ "$%.2f"|format(commit[2]) }}</td>
                                         {% endif %}
                                     </tr>
                                 {% endfor %}

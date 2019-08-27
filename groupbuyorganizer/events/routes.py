@@ -8,9 +8,9 @@ from groupbuyorganizer.events.forms import CreateItemForm, CreateCaseSplitForm, 
     EditItemForm, EventExtraChargeForm, EventNotesForm, SelectUserFromEventForm
 from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Event, Item
 from groupbuyorganizer.events.utility_functions import fetch_user_items, generate_active_user_select_field,\
-    is_user_active, return_qty_price_select_field
-from groupbuyorganizer.events.utility_objects import CaseSplitItemGroup, EventItem, MyOrderObject, StructuredEventItemList,\
-    UserTotalItem
+    is_event_active, is_user_active, return_qty_price_select_field
+from groupbuyorganizer.events.utility_objects import BreakdownObject, CaseSplitItemGroup, EventItem, \
+    MyOrderObject, SummaryObject,  StructuredEventItemList, UserTotalItem
 
 
 events = Blueprint('events', __name__)
@@ -100,7 +100,6 @@ def event_edit(event_id):
         return redirect(url_for('events.event_edit', event_id=event_id))
     elif event_extra_charge_form.validate_on_submit():
         event.extra_charges = event_extra_charge_form.extra_charges.data
-        print(event_extra_charge_form.extra_charges.data)
         database.session.commit()
         flash('Extra charges updated!', 'info')
         return redirect(url_for('events.event_edit', event_id=event_id))
@@ -304,19 +303,18 @@ def event_summary(event_id):
             flash('Access denied', 'warning')
             return redirect(url_for('general.home'))
 
+    event_active = is_event_active(event.id)
+    order_object = None
+    if event_active == True:
+        order_object = SummaryObject(event)
+
     case_buy_items = database.session.query(Item, Category.name).filter(Item.event_id == event.id,
                                                                         Item.id == CaseBuy.item_id)\
                                                         .join(Category, Item.category_id == Category.id)\
                                                         .order_by(Category.name, Item.name).all()
-    # case_split_items = database.session.query(Item, Category.name).filter
-    # print(case_split_items)
 
-    merged_items = set()
-    structured_item_list = None
-    if case_buy_items:
-        structured_item_list = StructuredEventItemList(case_buy_items, event_id)
 
-    return render_template('event_summary.html', event=event, is_pdf=False, structured_item_list=structured_item_list,
+    return render_template('event_summary.html', event=event, is_pdf=False, order_object=order_object,
                            users_can_see_master_overview=instance.users_can_see_master_overview, title=f'{event.name} '
         f'Summary')
 
@@ -331,9 +329,15 @@ def event_summary_pdf(event_id):
             flash('Access denied', 'warning')
             return redirect(url_for('general.home'))
 
+    event_active = is_event_active(event.id)
+    order_object = None
+    if event_active == True:
+        order_object = SummaryObject(event)
+
     # PDF Setup
     config = pdfkit.configuration(wkhtmltopdf=instance.wkhtmltopdf_path)
-    rendered = render_template('event_summary.html', is_pdf=True, event=event, title=f'{event.name} Order Overview')
+    rendered = render_template('event_summary.html', is_pdf=True, event=event, order_object=order_object,
+                               title=f'{event.name} Order Overview')
     pdf = pdfkit.from_string(rendered, False, configuration=config, options={'quiet': ''})
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
@@ -351,10 +355,14 @@ def event_total_user_breakdown(event_id):
             flash('Access denied', 'warning')
             return redirect(url_for('general.home'))
 
-    user_total_object = UserTotalItem(event)
-    main_query_vars = True
+    event_active = is_event_active(event.id)
+    order_object = None
+    if event_active == True:
+        order_object = BreakdownObject(event)
 
-    return render_template('user_breakdown.html', event=event, is_pdf=False, breakdown_object=main_query_vars,
+    user_total_object = UserTotalItem(event)
+
+    return render_template('user_breakdown.html', event=event, is_pdf=False, breakdown_object=order_object,
                            users_can_see_master_overview=instance.users_can_see_master_overview,
                            user_total_object=user_total_object, title=f'{event.name} Event Total -- User Breakdown')
 
@@ -364,19 +372,22 @@ def event_total_user_breakdown(event_id):
 def event_total_user_breakdown_pdf(event_id):
     event = Event.query.get_or_404(event_id)
     instance = Instance.query.first()
-
     if instance.users_can_see_master_overview == False:
         if current_user.is_admin == False:
             flash('Access denied', 'warning')
             return redirect(url_for('general.home'))
-    #todo wire in pdf route the same way as html page for table building logic
+
+    event_active = is_event_active(event.id)
+    order_object = None
+    if event_active == True:
+        order_object = BreakdownObject(event)
+
     user_total_object = UserTotalItem(event)
-    breakdown_object = 2 #todo
 
     # PDF Setup
     config = pdfkit.configuration(wkhtmltopdf=instance.wkhtmltopdf_path)
     rendered = render_template('user_breakdown.html', is_pdf=True, event=event, user_total_object=user_total_object,
-                               title=f'{event.name} - Case Breakdown', breakdown_object=breakdown_object)
+                               title=f'{event.name} - Case Breakdown', breakdown_object=order_object)
     pdf = pdfkit.from_string(rendered, False, configuration=config, options={'quiet': ''})
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
@@ -516,6 +527,19 @@ def case_split(event_id, item_id, case_split_id):
                     pieces_reserved_so_far += commit.pieces_committed
         return pieces_reserved_so_far
 
+    # Evaluate case split is_complete status
+    def check_is_complete(case_split):
+        piece_sum = 0
+        for commit in case_split.commits:
+            piece_sum += commit.pieces_committed
+        if case_split.is_complete:
+            if piece_sum < item.packing:
+                case_split.is_complete = False
+        else:
+            if piece_sum == item.packing:
+                case_split.is_complete = True
+        database.session.commit()
+
     pieces_reserved_so_far = how_many_pieces_reserved(case_split.commits, current_user.id)
 
     modify_case_split_form.piece_quantity.choices = return_qty_price_select_field(item.packing - pieces_reserved_so_far,
@@ -524,54 +548,58 @@ def case_split(event_id, item_id, case_split_id):
                                                         user_id=current_user.id).first()
 
     if modify_case_split_form.validate_on_submit():
-        case_piece_commit = CasePieceCommit.query.filter_by(case_split_id=case_split.id, user_id=current_user.id).first()
-        if case_piece_commit:
-            # Validating there are enough pieces left.  Since javascript isn't implemented in this library (yet), the
-            # number of pieces in a case split can change without any warning to the user.
-            case_split = CaseSplit.query.filter_by(id=case_split_id).first()
-            if case_split.is_complete:
+        case_split = CaseSplit.query.filter_by(id=case_split.id).first()
+        if case_split.is_complete:
+            flash('This case split has closed in between you loading the previous page and clicking submit... '
+                  ' someone else beat you to it!  Start a new case split instead.', 'warning')
+            return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
+        else:
+            case_piece_commit = CasePieceCommit.query.filter_by(case_split_id=case_split.id, user_id=current_user.id).first()
+            if case_piece_commit:
+                # Validating there are enough pieces left.  Since javascript isn't implemented in this library (yet), the
+                # number of pieces in a case split can change without any warning to the user.
+                case_split = CaseSplit.query.filter_by(id=case_split_id).first()
+                if case_split:
+                    pieces_reserved_so_far = how_many_pieces_reserved(case_split.commits, current_user.id)
+                    if modify_case_split_form.piece_quantity.data + pieces_reserved_so_far > item.packing:
+                        flash(
+                            'Items pledged exceeds what is currently available for this case split.  This occurs when someone'
+                            ' else places a pledge right before you.  Please resubmit a pledge with a different quantity, or '
+                            'otherwise create a new case split.', 'warning')
+                        return redirect(url_for('events.case_split', event_id=event.id, item_id=item.id,
+                                                case_split_id=case_split.id))
+                    else:
+                        case_piece_commit.pieces_committed = modify_case_split_form.piece_quantity.data
+                        database.session.commit()
+                        check_is_complete(case_split)
+                        flash(
+                            'Case split pledge updated!', 'info')
+                        return redirect(url_for('events.case_split', event_id=event.id, item_id=item.id,
+                                                case_split_id=case_split.id))
+            else:
                 pieces_reserved_so_far = how_many_pieces_reserved(case_split.commits, current_user.id)
                 if modify_case_split_form.piece_quantity.data + pieces_reserved_so_far > item.packing:
-                    flash('This case split has closed in between you loading the previous page and clicking submit... '
-                          ' someone else beat you to it!  Start a new case split instead.', 'warning')
-                    return redirect(url_for('events.item', event_id=event.id, item_id=item.id))
-            pieces_reserved_so_far = how_many_pieces_reserved(case_split.commits, current_user.id)
-            if modify_case_split_form.piece_quantity.data + pieces_reserved_so_far > item.packing:
-                flash('Items pledged exceeds what is currently available for this case split.  This occurs when someone'
-                      ' else places a pledge right before you.  Please resubmit a pledge with a different quantity, or '
-                      'otherwise create a new case split.', 'warning')
-                return redirect(url_for('events.case_split', event_id=event.id, item_id=item.id,
-                                        case_split_id=case_split.id))
-
-            case_piece_commit.pieces_committed = modify_case_split_form.piece_quantity.data
-        else:
-            commit = CasePieceCommit(event_id=event.id, case_split_id=case_split.id, user_id=current_user.id,
-                                                item_id=item.id,
-                                                 pieces_committed=modify_case_split_form.piece_quantity.data)
-            database.session.add(commit)
-        database.session.commit()
-
-        # Evaluate case split is_complete status
-        piece_sum = 0
-        for commit in case_split.commits:
-            piece_sum += commit.pieces_committed
-        if case_split.is_complete:
-            if piece_sum < item.packing:
-                case_split.is_complete = False
-                print('Toggle case split False')
-        else:
-            if piece_sum == item.packing:
-                case_split.is_complete = True
-                print('Toggle case split True')
-        database.session.commit()
-        flash('Case split updated!', 'success')
-        return redirect(url_for('events.case_split', event_id=event.id, item_id=item.id, case_split_id=case_split.id))
+                    flash(
+                        'Items pledged exceeds what is currently available for this case split.  This occurs when '
+                        'someone else places a pledge right before you.  Please resubmit a pledge with a different '
+                        'quantity, or otherwise create a new case split.', 'warning')
+                    return redirect(url_for('events.case_split', event_id=event.id, item_id=item.id,
+                                            case_split_id=case_split.id))
+                else:
+                    commit = CasePieceCommit(event_id=event.id, case_split_id=case_split.id, user_id=current_user.id,
+                                                        item_id=item.id,
+                                                         pieces_committed=modify_case_split_form.piece_quantity.data)
+                    database.session.add(commit)
+                    database.session.commit()
+                    check_is_complete(case_split)
+                    flash(
+                        'Case split pledge created!', 'info')
+                    return redirect(url_for('events.case_split', event_id=event.id, item_id=item.id,
+                                            case_split_id=case_split.id))
 
     elif request.method == 'GET':
-
         if case_piece_commit:
             modify_case_split_form.piece_quantity.data = case_piece_commit.pieces_committed
-
     return render_template('case_split.html', event=event, item=item, created_by=created_by,
                            form=modify_case_split_form, case_split=case_split_item, is_locked=event.is_locked,
                            title=f'{item.name} Case Split')

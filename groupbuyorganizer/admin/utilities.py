@@ -3,7 +3,7 @@ from flask_login import current_user
 
 from groupbuyorganizer import database
 from groupbuyorganizer.admin.models import User
-from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Item, Event
+from groupbuyorganizer.events.models import CaseSplit, Item, Event
 from groupbuyorganizer.events.utility_objects import get_active_participants, get_case_list
 
 
@@ -47,7 +47,7 @@ class HomeEvent:
 
     def get_event_total(self):
         total_cost = 0
-        for case_order in self.case_list[0]: #todo
+        for case_order in self.case_list[0]:
             item = Item.query.filter_by(id=case_order.item_id).first()
             total_cost += (case_order.quantity * item.price)
 

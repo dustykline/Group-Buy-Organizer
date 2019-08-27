@@ -36,7 +36,7 @@ import os
 
 
 web_app = Flask(__name__)
-web_app.config['SECRET_KEY'] = 'temp'#todo remove upon completion binascii.b2a_hex(os.urandom(32))
+web_app.config['SECRET_KEY'] = binascii.b2a_hex(os.urandom(32))
 web_app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 
 database = SQLAlchemy(web_app)

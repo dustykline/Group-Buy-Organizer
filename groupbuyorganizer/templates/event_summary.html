@@ -9,12 +9,51 @@
                 </ol>
         </nav>
     {% endif %}
-    {% if structured_item_list %}
-        <div class="container text-center mb-5 mt-5 border border-primary rounded" style="width: 18rem;">
-            <p class="font-weight-bold mt-3">Want a PDF of this page to save?</p>
-            <img src="{{ url_for("static", filename="pdf.svg") }}" width="90" height="90" alt="PDF Icon" class="m-3">
-            <a class="btn btn-outline-primary m-3" href="{{ url_for("events.event_summary_pdf",
-            event_id=event.id) }}" role="button">Generate PDF</a>
+    {% if order_object %}
+        {% if not is_pdf %}
+            <div class="container text-center mb-5 mt-5 border border-primary rounded" style="width: 18rem;">
+                <p class="font-weight-bold mt-3">Want a PDF of this page to save?</p>
+                <img src="{{ url_for("static", filename="pdf.svg") }}" width="90" height="90" alt="PDF Icon" class="m-3">
+                <a class="btn btn-outline-primary m-3" href="{{ url_for("events.event_summary_pdf",
+                event_id=event.id) }}" role="button">Generate PDF</a>
+            </div>
+        {% endif %}
+        {% for category_group in order_object.group_lists %}
+            <h2 class="mb-3 mt-3"><p class="font-weight-bold">{{ category_group.category_name }}</p></h2>
+            <hr>
+            <div class="container mt-3 mb-3 border border-secondary rounded">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Item Name</th>
+                            <th scope="col">Packing</th>
+                            <th scope="col">Case Price</th>
+                            <th scope="col">Piece Price</th>
+                            <th scope="col">Cases Bought</th>
+                            <th scope="col">Cases Split</th>
+                            <th scope="col">Total Cases</th>
+                            <th scope="col">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in category_group.items %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.packing }} / 1</td>
+                            <td>{{ "$%.2f"|format(item.case_price) }}</td>
+                            <td>{{ "$%.2f"|format(item.piece_price) }}</td>
+                            <td>{{ item.from_case_buy }}</td>
+                            <td>{{ item.from_case_split }}</td>
+                            <td>{{ item.cases_bought }}</td>
+                            <td>{{ "$%.2f"|format(item.item_total) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endfor %}
+        <div class="container mt-5 mb-5">
+            <h2><p class="font-weight-bold">Event Total: {{ "$%.2f"|format(order_object.total) }}</p></h2>
         </div>
     {% else %}
         <div class="container">

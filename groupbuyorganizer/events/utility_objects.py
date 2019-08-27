@@ -3,9 +3,9 @@ from flask_login import current_user
 from groupbuyorganizer import database
 from groupbuyorganizer.admin.models import User
 from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Item
-from groupbuyorganizer.events.utility_functions import get_active_participants, get_case_list, \
-    how_many_pieces_locked_in, get_cases_reserved_for_item, get_event_total, get_pieces_available_split_item, \
-    get_user_total_tuple
+from groupbuyorganizer.events.utility_functions import fetch_active_event_items, get_active_participants, \
+    get_case_list, how_many_pieces_locked_in, get_cases_reserved_for_item, get_event_total, \
+    get_pieces_available_split_item, get_user_total_tuple
 
 '''All repetitive functions used in display objects go in this module.  /events/utilities.py was split into these two
 pieces because it was growing a bit messy.'''
@@ -15,7 +15,6 @@ class StructuredEventItemList:
     '''This is the main object that jinja pulls data from for the event page.  It organizes items into GroupList items
     by category.
     '''
-
     def __init__(self, item_list, event_id):
         self.item_list = item_list
         self.event_id = event_id
@@ -61,13 +60,23 @@ class MyOrderObject:
 
 
 class SummaryObject:
-    def __init__(self):
-        pass
+    def __init__(self, event):
+        self.event = event
+        self.items = fetch_active_event_items(self.event.id)
+        self.group_lists = generate_group_lists(self.items, 'summary_item', event_id=self.event.id)
+        self.case_list = get_case_list(self.event.id)
+        self.total = get_event_total(self.case_list)
+
 
 
 class BreakdownObject:
-    def __init__(self):
-        pass
+    def __init__(self, event):
+        self.event = event
+        self.items = fetch_active_event_items(self.event.id)
+        self.group_lists = generate_group_lists(self.items, 'user_breakdown_item', event_id=self.event.id)
+        self.case_list = get_case_list(self.event.id)
+        self.total = get_event_total(self.case_list)
+
 
 class GroupList:
     '''These are nothing but containers for items with a specific category name.  This helps Jinja loop through lists
@@ -76,6 +85,11 @@ class GroupList:
     def __init__(self, category_name, items):
         self.category_name = category_name
         self.items = items
+        self.sort()
+
+
+    def sort(self):
+        self.items = sorted(self.items, key=lambda x: x.name)
 
 
 class EventItem:
@@ -141,13 +155,17 @@ class CaseSplitItem:
         if self.item:
             self.name = self.item.name
 
+
     def _get_structured_commits(self):
         reversed_list = sorted(self.case_split.commits, key=lambda x: x.id, reverse=True)
         commit_list = []
         for commit in reversed_list:
             commit_id_username = database.session.query(User.id, User.username).filter(CasePieceCommit.event_id ==
                                                                     self.event_id, User.id == commit.user_id).first()
-            commit_list.append((commit_id_username, commit))
+            value = None
+            if self.item:
+                value = float(self.item.price) * (float(commit.pieces_committed) / float(self.packing))
+            commit_list.append((commit_id_username, commit, value))
         return commit_list
 
     def check_if_current_user_involved(self):
@@ -167,6 +185,7 @@ class UserTotalItem:
         self.event_partipicants = get_active_participants(self.event.id, return_length=False)
         self.user_totals_table = self.create_user_table()
 
+
     def create_user_table(self):
         table_list = []
         for username in self.event_partipicants:
@@ -177,7 +196,7 @@ class UserTotalItem:
             case_buys = CaseBuy.query.filter_by(user_id=user.id, event_id=self.event.id).all()
             for case_buy in case_buys:
                 item_price = database.session.query(Item.price).filter(Item.id == case_buy.item_id).first()[0]
-                item_total_cost += case_buy.quantity * item_price
+                item_total_cost += float(case_buy.quantity * item_price)
 
             # Getting total for case splits
             commits = database.session.query(CasePieceCommit).filter(CaseSplit.event_id == self.event.id,
@@ -189,12 +208,13 @@ class UserTotalItem:
                                                                                       commit.case_split_id).first()[0]
                 item_price_packing = database.session.query(Item.price, Item.packing)\
                                                                         .filter(Item.id == case_split_item_id).first()
-                split_total = (item_price_packing[0] / item_price_packing[1]) * commit.pieces_committed
-                item_total_cost += split_total
+                split_total = (float(commit.pieces_committed) / float(item_price_packing[1])) \
+                              * float(item_price_packing[0])
+                item_total_cost += float(split_total)
 
             # Extra fee split
-            extra_fee_percentage = round(item_total_cost/self.event_total, 2)
-            extra_fee_split = round(self.event.extra_charges * extra_fee_percentage, 2)
+            extra_fee_percentage = round(float(item_total_cost)/float(self.event_total), 2)
+            extra_fee_split = round(float(self.event.extra_charges) * float(extra_fee_percentage), 2)
             grand_total = round(item_total_cost + extra_fee_split, 2)
 
             tuple_to_be_appended = (username, item_total_cost, extra_fee_percentage, extra_fee_split, grand_total)
@@ -209,6 +229,7 @@ class MyOrderItem:
         self.user_id = user_id
 
         self.item_name = self.item.name
+        self.name = self.item.name
         self.packing = self.item.packing
         self.case_price = self.item.price
         self.piece_price = round(self.case_price / self.packing, 2)
@@ -236,26 +257,61 @@ class SummaryItem:
     def __init__(self, item, event_id):
         self.item = item
         self.event_id = event_id
+        self.case_list = get_case_list(self.event_id, item_id=self.item.id)
 
         self.name = self.item.name
         self.packing = self.item.packing
         self.case_price = self.item.price
         self.piece_price = round(self.case_price / self.packing, 2)
-        self.from_case_buy = 0 #todo global +v
-        self.from_case_split = 0 #todo
+        self.from_case_buy = self.total_cases_bought()
+        self.from_case_split = len(self.case_list[1])
         self.cases_bought = self.from_case_buy + self.from_case_split
         self.item_total = self.case_price * self.cases_bought
 
 
+    def total_cases_bought(self):
+        total = 0
+        for case_buy in self.case_list[0]:
+            total += case_buy.quantity
+        return total
+
 
 class UserBreakdownItem:
-    def __init__(self, item, user_id):
+    def __init__(self, item, event_id):
         self.item = item
-        self.user_id = user_id
-        self.case_list = None
+        self.event_id = event_id
+        self.case_list = get_case_list(self.event_id, item_id=self.item.id)
 
-        self.case_buy_table = [] #func username, qty
-        self.case_split_cards = [] #func username, qty
+        self.name = self.item.name
+        self.packing = self.item.packing
+        self.case_price = self.item.price
+        self.piece_price = round(self.case_price / self.packing, 2)
+        self.cases_bought = self.total_cases_bought()
+        self.cases_split = len(self.case_list[1])
+        self.total_cases = self.cases_bought + self.cases_split
+
+        self.case_buy_table = self.format_case_buy_table()
+        self.case_split_cards = []
+
+        for case_split in self.case_list[1]:
+            self.case_split_cards.append(CaseSplitItem(case_split, self.item.packing, self.event_id, item=self.item))
+
+
+    def total_cases_bought(self):
+        total = 0
+        for case_buy in self.case_list[0]:
+            total += case_buy.quantity
+        return total
+
+
+    def format_case_buy_table(self):
+        table = []
+        for case_buy in self.case_list[0]:
+            username = database.session.query(User.username).filter(User.id == case_buy.user_id).first()[0]
+            table.append((username, case_buy.quantity))
+        table.sort()
+        return table
+
 
 def generate_group_lists(item_list, item_to_instantiate, event_id=None, user_id=None, current_user_view=False):
     '''Organizing items by category is a common task in this library.  This will organize items in different categories
@@ -263,10 +319,6 @@ def generate_group_lists(item_list, item_to_instantiate, event_id=None, user_id=
     purchase data on the page).
     '''
 
-    item_dictionary = {'event_item' : EventItem,
-                       'my_order_item' : MyOrderItem,
-                       'summary_item' : SummaryItem,
-                       'user_breakdown_item' : UserBreakdownItem}
     group_lists = []
     current_category = ''
     categorized_items = []
@@ -283,6 +335,6 @@ def generate_group_lists(item_list, item_to_instantiate, event_id=None, user_id=
         elif item_to_instantiate == 'summary_item':
             categorized_items.append(SummaryItem(group[0], event_id))
         elif item_to_instantiate == 'user_breakdown_item':
-            categorized_items.append(UserBreakdownItem(group[0], user_id))
+            categorized_items.append(UserBreakdownItem(group[0], event_id))
     group_lists.append(GroupList(current_category, categorized_items))
     return group_lists

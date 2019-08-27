@@ -1,6 +1,5 @@
 from groupbuyorganizer import database
 from groupbuyorganizer.admin.models import Category, User
-from groupbuyorganizer.events.forms import SelectUserFromEventForm
 from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Item
 
 '''All repetitive functions used in display objects go in this module.  /events/utilities.py was split into these two
@@ -32,13 +31,17 @@ def return_qty_price_select_field(max_pieces, item_price, item_packing, whole_ca
     return choices_list
 
 
-def get_case_list(event_id):
+def get_case_list(event_id, item_id=None):
     '''This query is used several times, so this function exists to reduce redundant code.  It returns a list of both
     case buys, and completed case splits.
     '''
 
-    case_buys = CaseBuy.query.filter_by(event_id=event_id).all()
-    case_splits = CaseSplit.query.filter_by(event_id=event_id, is_complete=True).all()
+    if item_id == None:
+        case_buys = CaseBuy.query.filter_by(event_id=event_id).all()
+        case_splits = CaseSplit.query.filter_by(event_id=event_id, is_complete=True).all()
+    else:
+        case_buys = CaseBuy.query.filter_by(event_id=event_id, item_id=item_id).all()
+        case_splits = CaseSplit.query.filter_by(event_id=event_id, item_id=item_id, is_complete=True).all()
     return case_buys, case_splits
 
 
@@ -92,6 +95,17 @@ def is_user_active(user_id, event_id):
     return False
 
 
+def is_event_active(event_id):
+    '''This returns a boolean value on whether this particular event is active or not.'''
+
+    case_buys = CaseBuy.query.filter_by(event_id=event_id).first()
+    split_commits = CasePieceCommit.query.filter_by(event_id=event_id).first()
+    if case_buys or split_commits:
+        return True
+
+    return False
+
+
 def fetch_user_items(user_id, event_id):
     '''Returns a list of items that the '''
     item_set = set()
@@ -125,12 +139,31 @@ def fetch_user_items(user_id, event_id):
     to_list = sorted(to_list, key=lambda x: x[0].name)
     return to_list
 
-def fetch_event_items(event_id):
-    pass
+def fetch_active_event_items(event_id):
+    '''Taking in the event ID, it returns all items that were involved in case buys or completed case splits in the
+    given event.
+    '''
+
+    item_set = set()
+    case_buy_items = database.session.query(Item).filter(CaseBuy.event_id == event_id, CaseBuy.item_id == Item.id).all()
+    case_split_items = database.session.query(Item).filter(CaseSplit.event_id == event_id,
+                                                           CaseSplit.item_id == Item.id,
+                                                           CaseSplit.is_complete == True).all()
+    for item in case_buy_items:
+        item_set.add(item)
+    for item in case_split_items:
+        item_set.add(item)
+    item_category_pair = []
+    for item in item_set:
+        category_name = database.session.query(Category.name).filter(Category.id == item.category_id).first()[0]
+        item_category_pair.append((item, category_name))
+    sorted_list = sorted(item_category_pair, key=lambda x: x[1])
+    return sorted_list
 
 
 def get_cases_reserved_for_item(item_id, user_id):
     '''This will return how many cases a user has purchased of a given item, otherwise it returns zero.'''
+
     cases_reserved = CaseBuy.query.filter_by(item_id=item_id, user_id=user_id).first()
     if cases_reserved is None:
         return 0

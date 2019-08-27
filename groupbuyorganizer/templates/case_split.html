@@ -80,7 +80,7 @@
                                 <td>
                                     <form class="form-inline" method="post">
                                         {{ form.hidden_tag() }}
-                                        {{ form.piece_quantity.label(class="form-control-label") }}
+                                        {{ commit[1].pieces_committed }} - {{ form.piece_quantity.label(class="form-control-label") }}
                                         {{ form.piece_quantity(class="form-control ml-3") }}
                                         {{ form.submit(class="btn btn-outline-info ml-3") }}
                                     </form>
