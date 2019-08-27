@@ -5,10 +5,12 @@ import pdfkit
 from groupbuyorganizer import database
 from groupbuyorganizer.admin.models import Category, Instance, User
 from groupbuyorganizer.events.forms import CreateItemForm, CreateCaseSplitForm, CreateEventForm, CaseQuantityOrderForm,\
-    EditItemForm, EventExtraChargeForm, EventNotesForm, RemoveUserFromEventForm
+    EditItemForm, EventExtraChargeForm, EventNotesForm, SelectUserFromEventForm
 from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Event, Item
-from groupbuyorganizer.events.utility_functions import is_user_active, return_qty_price_select_field
-from groupbuyorganizer.events.utility_objects import CaseSplitGroup, EventItem, StructuredEventItemList, UserTotalItem
+from groupbuyorganizer.events.utility_functions import fetch_user_items, generate_active_user_select_field,\
+    is_user_active, return_qty_price_select_field
+from groupbuyorganizer.events.utility_objects import CaseSplitItemGroup, EventItem, MyOrderObject, StructuredEventItemList,\
+    UserTotalItem
 
 
 events = Blueprint('events', __name__)
@@ -27,20 +29,8 @@ def event(event_id):
     form.category_id.choices = categories_list
 
     # Remove user from event form
-    remove_user_from_event_form = RemoveUserFromEventForm()
-    case_buy_users = database.session.query(User.id, User.username).filter(CaseBuy.event_id == event.id, User.id == CaseBuy.user_id).all()
-    case_split_users = database.session.query(User.id, User.username).filter(CaseSplit.event_id == event.id, CasePieceCommit.case_split_id == CaseSplit.id,
-                        User.id == CasePieceCommit.user_id).all()
-    case_buy_set = set(case_buy_users)
-    case_split_set = set(case_split_users)
-    total_user_set = set()
-    for user in case_buy_set:
-        total_user_set.add(user)
-    for user in case_split_set:
-        total_user_set.add(user)
-    total_event_users = list(total_user_set)
-    total_event_users.sort(key=lambda x: x[1])
-    remove_user_from_event_form.user_to_remove.choices = total_event_users
+    remove_user_from_event_form = SelectUserFromEventForm()
+    remove_user_from_event_form.user_to_select.choices = generate_active_user_select_field(event.id)
 
     #Items Setup
     items = database.session.query(Item, Category.name).filter_by(event_id=event.id).join(Category, Item.category_id
@@ -61,7 +51,7 @@ def event(event_id):
         if current_user.is_admin == False:
             flash('Access denied', 'danger')
             return redirect(url_for('general.home'))
-        active_user = User.query.filter_by(id=remove_user_from_event_form.user_to_remove.data).first()
+        active_user = User.query.filter_by(id=remove_user_from_event_form.user_to_select.data).first()
         case_buys = CaseBuy.query.filter_by(event_id=event_id, user_id=active_user.id).all()
         for case_buy in case_buys:
             database.session.delete(case_buy)
@@ -110,6 +100,7 @@ def event_edit(event_id):
         return redirect(url_for('events.event_edit', event_id=event_id))
     elif event_extra_charge_form.validate_on_submit():
         event.extra_charges = event_extra_charge_form.extra_charges.data
+        print(event_extra_charge_form.extra_charges.data)
         database.session.commit()
         flash('Extra charges updated!', 'info')
         return redirect(url_for('events.event_edit', event_id=event_id))
@@ -264,7 +255,8 @@ def item(event_id, item_id):
         database.session.add(case_split)
         database.session.commit()
         case_piece_commit = CasePieceCommit(case_split_id=case_split.id, user_id=current_user.id, event_id=event_id,
-                                            pieces_committed=create_case_split_form.piece_quantity.data)
+                                            pieces_committed=create_case_split_form.piece_quantity.data,
+                                            item_id=item.id)
         database.session.add(case_piece_commit)
         database.session.commit()
         flash('Case split created!', 'success')
@@ -404,12 +396,26 @@ def my_order(event_id, user_id):
             flash('Access denied', 'warning')
             return redirect(url_for('general.home'))
 
-    user_active = is_user_active(user.id, event_id)
+    form = SelectUserFromEventForm()
+    form.user_to_select.choices = generate_active_user_select_field(event.id)
+
+    user_active = is_user_active(user.id, event.id)
+    order_object = None
+    if user_active == True:
+        user_items = fetch_user_items(user.id, event.id)
+        order_object = MyOrderObject(user, user_items, event)
+
+    if form.validate_on_submit():
+        user_to_redirect_to = form.user_to_select.data
+        return redirect(url_for('events.my_order', event_id=event.id, user_id=user_to_redirect_to))
+
+    if request.method == 'GET':
+        form.user_to_select.data = user.id
 
 
 
     return render_template('my_order.html', event=event, is_pdf=False, user_name = user.username, user_id=user.id,
-                           user_active=user_active,
+                           user_active=user_active, order_object=order_object, form=form,
                            users_can_see_master_overview=instance.users_can_see_master_overview,
                            title=f"{user.username}'s order")
 
@@ -426,11 +432,16 @@ def my_order_pdf(event_id, user_id):
             flash('Access denied', 'warning')
             return redirect(url_for('general.home'))
 
-    user_active = is_user_active(user.id, event_id)
+    user_active = is_user_active(user.id, event.id)
+    order_object = None
+    if user_active == True:
+        user_items = fetch_user_items(user.id, event.id)
+        order_object = MyOrderObject(user, user_items, event)
 
     # PDF Setup
     config = pdfkit.configuration(wkhtmltopdf=instance.wkhtmltopdf_path)
     rendered = render_template('my_order.html', is_pdf=True, event=event, user_active=user_active, user_id=user.id,
+                               form=None, order_object=order_object, user_name = user.username,
                                title=f"{user.username}'s order")
     pdf = pdfkit.from_string(rendered, False, configuration=config, options={'quiet': ''})
     response = make_response(pdf)
@@ -485,7 +496,7 @@ def case_split(event_id, item_id, case_split_id):
     event = Event.query.get_or_404(event_id)
     item = Item.query.get_or_404(item_id)
     case_split = CaseSplit.query.get_or_404(case_split_id)
-    case_split_group = CaseSplitGroup((case_split,), item.packing, event.id, is_single=True)
+    case_split_group = CaseSplitItemGroup((case_split,), item.packing, event.id, is_single=True)
     created_by = case_split_group.single_split[1][0]
     case_split_item = case_split_group.single_split[0]
 
@@ -534,8 +545,8 @@ def case_split(event_id, item_id, case_split_id):
 
             case_piece_commit.pieces_committed = modify_case_split_form.piece_quantity.data
         else:
-            commit = CasePieceCommit(event_id=event.id, case_split_id=case_split.id,
-                                                             user_id=current_user.id,
+            commit = CasePieceCommit(event_id=event.id, case_split_id=case_split.id, user_id=current_user.id,
+                                                item_id=item.id,
                                                  pieces_committed=modify_case_split_form.piece_quantity.data)
             database.session.add(commit)
         database.session.commit()

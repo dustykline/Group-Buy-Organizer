@@ -9,6 +9,27 @@
             </ol>
         </nav>
     {% endif %}
+    {% if current_user.is_admin or users_can_see_master_overview %}
+        {% if not is_pdf %}
+            <div class="card mb-5 mx-auto" style="width: 18rem;">
+                <div class="card-header">
+                    <h3 class="card-title">User Select</h3>
+                    <h6 class="card-subtitle mb-2 text-muted">Select another user and press submit to see their order.</h6>
+                </div>
+                <div class="card-header">
+                    <form class="form-inline mt-2" method="POST">
+                        {{ form.hidden_tag() }}
+                        <div class="input-group mb-2 mr-sm-2">
+                            {{ form.user_to_select(class="form-control") }}
+                        </div>
+                        <div class="form-check mb-2 ml-1 mr-sm-2">
+                            {{ form.submit(class="btn btn-outline-info") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
     {% if user_active and not is_pdf %}
         <div class="container text-center mb-5 mt-5 border border-primary rounded" style="width: 18rem;">
             <p class="font-weight-bold mt-3">Want a PDF of this page to save?</p>
@@ -18,8 +39,8 @@
         </div>
     {% endif %}
     {% if user_active %}
-        {% for group in structured_item_list.group_lists %}
-            <div class="container mb-4">
+        {% for group in order_object.group_lists %}
+            <div class="container mb-4 mt-5">
                 <h3>{{ group.category_name }}</h3>
                 <table class="table">
                     <thead class="thead-light">
@@ -31,6 +52,7 @@
                             <th scope="col"># Cases Bought</th>
                             <th scope="col">Case Splits Involved In</th>
                             <th scope="col">Pieces You've Locked In</th>
+                            <th scope="col">Item Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -40,9 +62,13 @@
                                 <td>{{ item.packing }} / 1</td>
                                 <td>{{ "$%.2f"|format(item.case_price) }}</td>
                                 <td>{{ "$%.2f"|format(item.piece_price) }}</td>
-                                <td class="font-weight-bold">{{ item.cases_you_bought }}</td>
+                                {% if item.cases_you_bought > 0 %}
+                                    <td class="font-weight-bold">{{ item.cases_you_bought }}</td>
+                                {% else %}
+                                    <td class="text-muted">---</td>
+                                {% endif %}
                                 {% if item.case_splits_you_were_in %}
-                                    <td class="font-weight-bold">{{ item.cases_splits_you_were_in }}</td>
+                                    <td class="font-weight-bold">{{ item.case_splits_you_were_in }}</td>
                                 {% else %}
                                     <td class="text-muted">---</td>
                                 {% endif %}
@@ -51,15 +77,88 @@
                                 {% else %}
                                     <td class="text-muted">---</td>
                                 {% endif %}
+                                <td class="font-weight-bold">{{ "$%.2f"|format(item.item_total) }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            <div class="container mt-5 mb-5">
-                case splits go here
-            </div>
         {% endfor %}
+        {% if order_object.splits %}
+            <div class="container mt-5 mb-5">
+                {% if order_object.splits|length == 1%}
+                    <h2>1 Case Split</h2>
+                {% else %}
+                    <h2>{{ order_object.splits|length }} Case Splits</h2>
+                {% endif %}
+            </div>
+            {% for user_split in order_object.splits %}
+                <div class="card border border-secondary mb-5 mt-5">
+                    <div class="card-header">
+                        <h3 class="card-title">{{ user_split[0].name }}</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                               <tr>
+                                   <th scope="col">Username</th>
+                                   <th scope="col">Quantity Pledged</th>
+                               </tr>
+                            </thead>
+                            <tbody>
+                                {% for commit in user_split[0].commits %}
+                                    {{ user_split.commits }}
+                                    <tr>
+                                        {% if commit[0][0] == user_id %}
+                                            <th scope="row">{{ commit[0][1] }}</th>
+                                            <th scope="row">{{ commit[1].pieces_committed }} / {{ user_split[0].packing }}</th>
+                                        {% else %}
+                                            <td>{{ commit[0][1] }}</td>
+                                            <td>{{ commit[1].pieces_committed }} / {{ user_split[0].packing }}</td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+        <hr>
+        <div class="container mt-5 mb-5">
+            <div class="card border border-secondary mb-2 mt-5">
+                    <div class="card-header">
+                        <h2 class="card-title float-middle">{{ user_name }}'s total:</h2>
+                        <table class="table mt-4">
+                            <thead>
+                                <tr>
+                                    <th scope="col"><h4>Order Total</h4></th>
+                                    {% if event.extra_charges == 0 %}
+                                        <th scope="col"><h4>Percentage of Group Buy Order</h4></th>
+                                    {% else %}
+                                        <th scope="col"><h4>Extra Fee Split</h4></th>
+                                    {% endif %}
+                                    {% if event.extra_charges > 0 %}
+                                        <th scope="col"><h4>Total</h4></th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                        <tbody>
+                        <tr>
+                        <td><h4>{{ "$%.2f"|format(order_object.total_tuple[1]) }}</h4></td>
+                        {% if event.extra_charges == 0 %}
+                        <td><h4>{{ "%.1f"|format(order_object.total_tuple[2] * 100) }}%</h4></td>
+                        {% else %}
+                        <td><h4>{{ "%.1f"|format(order_object.total_tuple[2] * 100) }}% of order -- ${{ order_object.total_tuple[3] }}</h4></td>
+                        {% endif %}
+                        {% if event.extra_charges > 0 %}
+                            <td><h4>{{ "$%.2f"|format(order_object.total_tuple[4]) }}</h4></td>
+                        {% endif %}
+                        </tr>
+                        </tbody>
+                        </table>
+            </div>
+        </div>
     {% else %}
         <div class="container">
             <div class="alert alert-info mx-auto">

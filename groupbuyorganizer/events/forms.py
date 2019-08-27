@@ -21,7 +21,7 @@ class EventNotesForm(FlaskForm):
 
 
 class EventExtraChargeForm(FlaskForm):
-    extra_charges = DecimalField('Extra Charges', validators=[DataRequired()])
+    extra_charges = DecimalField('Extra Charges')
     submit = SubmitField('Update')
 
 
@@ -51,6 +51,6 @@ class CreateCaseSplitForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
-class RemoveUserFromEventForm(FlaskForm):
-    user_to_remove = SelectField("Remove User's Transactions From Event", coerce=int)
-    submit = SubmitField("Remove")
+class SelectUserFromEventForm(FlaskForm):
+    user_to_select = SelectField("Remove User's Transactions From Event", coerce=int)
+    submit = SubmitField("Submit")

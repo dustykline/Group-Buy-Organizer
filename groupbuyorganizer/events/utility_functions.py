@@ -1,5 +1,6 @@
 from groupbuyorganizer import database
-from groupbuyorganizer.admin.models import User
+from groupbuyorganizer.admin.models import Category, User
+from groupbuyorganizer.events.forms import SelectUserFromEventForm
 from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Item
 
 '''All repetitive functions used in display objects go in this module.  /events/utilities.py was split into these two
@@ -93,3 +94,106 @@ def is_user_active(user_id, event_id):
 
 def fetch_user_items(user_id, event_id):
     '''Returns a list of items that the '''
+    item_set = set()
+
+    # Getting case buys
+    case_buy_items = database.session.query(CaseBuy) \
+        .filter(CaseBuy.user_id == user_id, CaseBuy.event_id == event_id).all()
+
+    # Getting case splits
+    split_commit_items = CasePieceCommit.query.filter_by(user_id=user_id, event_id=event_id).all()
+    filtered_commits = []
+    for commit in split_commit_items:
+        case_split = CaseSplit.query.filter_by(id=commit.case_split_id).first()
+        if case_split.is_complete == True:
+            filtered_commits.append((case_split.item_id,))
+
+    # Extracting items and category names out of case buys
+    for case_buy in case_buy_items:
+        item = Item.query.filter_by(id=case_buy.item_id).first()
+        category_name = database.session.query(Category.name).filter_by(id=item.category_id).first()
+        item_set.add((item, category_name[0]))
+
+    # Extracting items and category names out of case split commits
+    for item_id in filtered_commits:
+        item = Item.query.filter_by(id=item_id[0]).first()
+        category_name = database.session.query(Category.name).filter_by(id=item.category_id).first()
+        item_set.add((item, category_name[0]))
+
+    # Final formatting
+    to_list = list(item_set)
+    to_list = sorted(to_list, key=lambda x: x[0].name)
+    return to_list
+
+def fetch_event_items(event_id):
+    pass
+
+
+def get_cases_reserved_for_item(item_id, user_id):
+    '''This will return how many cases a user has purchased of a given item, otherwise it returns zero.'''
+    cases_reserved = CaseBuy.query.filter_by(item_id=item_id, user_id=user_id).first()
+    if cases_reserved is None:
+        return 0
+    return cases_reserved.quantity
+
+def generate_active_user_select_field(event_id):
+
+    case_buy_users = database.session.query(User.id, User.username).filter(CaseBuy.event_id == event_id, User.id == CaseBuy.user_id).all()
+    case_split_users = database.session.query(User.id, User.username).filter(CaseSplit.event_id == event_id, CasePieceCommit.case_split_id == CaseSplit.id,
+                        User.id == CasePieceCommit.user_id).all()
+    case_buy_set = set(case_buy_users)
+    case_split_set = set(case_split_users)
+    total_user_set = set()
+    for user in case_buy_set:
+        total_user_set.add(user)
+    for user in case_split_set:
+        total_user_set.add(user)
+    total_event_users = list(total_user_set)
+    total_event_users.sort(key=lambda x: x[1])
+    return total_event_users
+
+
+def how_many_pieces_locked_in(event_id, item_id, user_id):
+    '''This will return how many case pieces a given user has locked in (aka, the case split is "complete").'''
+
+    count = 0
+    splits = CaseSplit.query.filter(CaseSplit.is_complete == True, CaseSplit.event_id == event_id,
+                                    CaseSplit.item_id == item_id).all()
+    for split in splits:
+        commits = CasePieceCommit.query.filter(CasePieceCommit.event_id == event_id,
+                                               CasePieceCommit.case_split_id == split.id, CasePieceCommit.user_id ==
+                                               user_id).all()
+        for commit in commits:
+            count += commit.pieces_committed
+    return count
+
+
+def get_user_total_tuple(user, event_id, event_total=0, event_extra_charges=0):
+    item_total_cost = 0
+
+    # Getting total for case buys
+    case_buys = CaseBuy.query.filter_by(user_id=user.id, event_id=event_id).all()
+    for case_buy in case_buys:
+        item_price = database.session.query(Item.price).filter(Item.id == case_buy.item_id).first()[0]
+        item_total_cost += case_buy.quantity * item_price
+
+    # Getting total for case splits
+    commits = database.session.query(CasePieceCommit).filter(CaseSplit.event_id == event_id,
+                                                             CaseSplit.is_complete == True,
+                                                             CasePieceCommit.case_split_id == CaseSplit.id,
+                                                             CasePieceCommit.user_id == user.id).all()
+    for commit in commits:
+        case_split_item_id = database.session.query(CaseSplit.item_id).filter(CaseSplit.id ==
+                                                                              commit.case_split_id).first()[0]
+        item_price_packing = database.session.query(Item.price, Item.packing) \
+            .filter(Item.id == case_split_item_id).first()
+        split_total = (item_price_packing[0] / item_price_packing[1]) * commit.pieces_committed
+        item_total_cost += split_total
+
+    # Extra fee split
+    extra_fee_percentage = round(item_total_cost / event_total, 2)
+    extra_fee_split = round(event_extra_charges * extra_fee_percentage, 2)
+    grand_total = round(item_total_cost + extra_fee_split, 2)
+
+    user_total_tuple = (user.username, item_total_cost, extra_fee_percentage, extra_fee_split, grand_total)
+    return user_total_tuple

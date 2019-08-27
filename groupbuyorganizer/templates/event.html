@@ -17,15 +17,15 @@
                 <a class="btn btn-outline-primary m-1" href="{{ url_for('events.event_summary', event_id=event.id) }}" role="button">Order Summary</a>
                 <a class="btn btn-outline-primary m-1" href="{{ url_for('events.event_total_user_breakdown', event_id=event.id) }}" role="button">User Breakdown</a>
                 <a class="btn btn-outline-secondary m-1" href="{{ url_for('events.event_edit', event_id=event.id) }}" role="button">Edit Event</a>
-                {% if remove_user_from_event_form.user_to_remove.choices %}
+                {% if remove_user_from_event_form.user_to_select.choices %}
                     <form class="form-inline mt-2" method="POST">
                         {{ remove_user_from_event_form.hidden_tag() }}
                         <div class="input-group mb-2 mr-sm-2">
-                            {{ remove_user_from_event_form.user_to_remove.label(class="form-control-label mr-3") }}
-                            {{ remove_user_from_event_form.user_to_remove(class_="form-control") }}
+                            {{ remove_user_from_event_form.user_to_select.label(class="form-control-label mr-3") }}
+                            {{ remove_user_from_event_form.user_to_select(class_="form-control") }}
                         </div>
                         <div class="form-check mb-2 ml-1 mr-sm-2">
-                            {{ remove_user_from_event_form.submit(class="btn btn-outline-warning") }}
+                            {{ remove_user_from_event_form.submit(class="btn btn-outline-danger") }}
                         </div>
                     </form>
                 {% endif %}
@@ -161,8 +161,8 @@
                             <th scope="col">Case Price</th>
                             <th scope="col">Price Per Piece</th>
                             <th scope="col">Active Case Splits</th>
-                            <th scope="col">Cases You've Reserved</th>
-                            <th scope="col">Pieces You've Locked In</th>
+                            <th scope="col">Cases You've Bought</th>
+                            <th scope="col">Pieces Reserved From Splits</th>
                             <th scope="col">Your Total</th>
 
                         </tr>
