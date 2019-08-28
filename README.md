@@ -13,7 +13,7 @@ for, only then it gets locked into the order.
 a customized list showing the cases and items you've ordered, its subtotal as well as the event total.  The event 
 summary view is a concise list for the organizer of how many cases to order.  The user breakdown view steps through one
 item at a time, showing all of the users who bought cases of it, as well as all of the case splits for that item.
-+ **Export to PDF:** All order pages include a button to export the list as a PDF to be downloaded.
++ **Export to PDF:** All order pages include a button to export the list as a PDF to be downloaded.  Pages are stripped down and optimized, removing the navigation bar, forms, etc.  Only black and white is used on exported pages.
 
 **Administrative Features**
 + **Complete control of the application:**  Expanded functionality added to edit virtually all aspects of group buys.
