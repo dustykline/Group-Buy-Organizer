@@ -115,12 +115,12 @@
                     <tr>
                         <th scope="col">Username</th>
                         <th scope="col">Order Total</th>
-                        {% if user_total_object.extra_charges == 0 %}
-                            <th scope="col">Percentage of Group Buy Order</th>
-                        {% else %}
+                        {% if user_total_object.extra_charges > 0 %}
                             <th scope="col">Extra Fee Split</th>
+                            <th scope="col">Total</th>
+                        {% else %}
+                            <th scope="col">Percentage of Group Buy Order</th>
                         {% endif %}
-                        <th scope="col">Total</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -133,7 +133,9 @@
                         {% else %}
                             <td>{{ "%.1f"|format(user[2] * 100) }}% of order -- ${{ user[3] }}</td>
                         {% endif %}
-                        <td>{{ "$%.2f"|format(user[4]) }}</td>
+                        {% if user_total_object.extra_charges > 0 %}
+                            <td>{{ "$%.2f"|format(user[4]) }}</td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
                 </tbody>
