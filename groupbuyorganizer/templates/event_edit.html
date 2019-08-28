@@ -53,16 +53,11 @@
         </form>
     </div>
     <h3 class="container mt-5 border-bottom">Event Notes</h3>
+    <form method="POST" action="">
     <div class="container">
-        <form method="POST" action="">
-            {{ event_notes_form.hidden_tag() }}
             <div class="form-group">
-                {{ event_notes_form.event_notes(class="form-control textarea") }}
+                {{ event_extra_charge_form.event_notes(class="form-control textarea") }}
             </div>
-            <div class="form-group">
-                {{ event_notes_form.submit(class="btn btn-outline-info") }}
-            </div>
-        </form>
     </div>
     <h3 class="container mt-5 border-bottom">Event Configuration</h3>
     <div class="container">
@@ -77,7 +72,6 @@
                             <tbody>
                                 <tr>
                                     <td>
-                                        <form class="form-inline" method="POST" action="">
                                             {{ event_extra_charge_form.hidden_tag() }}
                                             {% if event_extra_charge_form.extra_charges.errors %}
                                                 {{ event_extra_charge_form.extra_charges(class="form-control form-control is-invalid float-left") }}
@@ -90,7 +84,6 @@
                                                 {{ event_extra_charge_form.extra_charges(class="form-control form-control float-left") }}
                                             {% endif %}
                                             {{ event_extra_charge_form.submit(class="btn btn-outline-info float-right ml-2") }}
-                                        </form>
                                     </td>
                                     {% if event.is_closed %}
                                         <td><a class="btn btn-outline-success disabled" href="#" role="button">Unlock</a></td>
@@ -108,6 +101,7 @@
                             </tbody>
                         </table>
     </div>
+    </form>
     <h3 class="container mt-5 border-bottom">Danger Zone</h3>
     <div class="container">
         <button type="button" class="btn btn-outline-danger mb-5 mt-1" data-toggle="modal" data-target="#warningModal">

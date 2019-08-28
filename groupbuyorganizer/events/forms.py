@@ -15,14 +15,10 @@ class CreateEventForm(FlaskForm):
             raise ValidationError('That event name is taken. Please choose a different one.')
 
 
-class EventNotesForm(FlaskForm):
-    event_notes = TextAreaField('Event Notes')
-    submit = SubmitField('Submit')
-
-
 class EventExtraChargeForm(FlaskForm):
     extra_charges = DecimalField('Extra Charges')
-    submit = SubmitField('Update')
+    event_notes = TextAreaField('Event Notes')
+    submit = SubmitField('Update Notes/Charges')
 
 
 class CreateItemForm(FlaskForm):

@@ -5,7 +5,7 @@ import pdfkit
 from groupbuyorganizer import database
 from groupbuyorganizer.admin.models import Category, Instance, User
 from groupbuyorganizer.events.forms import CreateItemForm, CreateCaseSplitForm, CreateEventForm, CaseQuantityOrderForm,\
-    EditItemForm, EventExtraChargeForm, EventNotesForm, SelectUserFromEventForm
+    EditItemForm, EventExtraChargeForm, SelectUserFromEventForm
 from groupbuyorganizer.events.models import CaseBuy, CasePieceCommit, CaseSplit, Event, Item
 from groupbuyorganizer.events.utility_functions import fetch_user_items, generate_active_user_select_field,\
     is_event_active, is_user_active, return_qty_price_select_field
@@ -91,32 +91,26 @@ def event_edit(event_id):
         return redirect(url_for('general.home'))
     event = Event.query.get_or_404(event_id)
     event_name_form = CreateEventForm()
-    event_extra_charge_form = EventExtraChargeForm()
-    event_notes_form = EventNotesForm()
+    event_edit_form = EventExtraChargeForm()
     if event_name_form.validate_on_submit():
         event.name = event_name_form.event_name.data
         database.session.commit()
         flash(f'{event.name} has been edited!', 'info')
         return redirect(url_for('events.event_edit', event_id=event_id))
-    elif event_extra_charge_form.validate_on_submit():
-        event.extra_charges = event_extra_charge_form.extra_charges.data
+    if event_edit_form.validate_on_submit():
+        event.extra_charges = event_edit_form.extra_charges.data
+        event.notes = event_edit_form.event_notes.data
         database.session.commit()
         flash('Extra charges updated!', 'info')
         return redirect(url_for('events.event_edit', event_id=event_id))
-    elif event_notes_form.validate_on_submit():
-        event.notes = event_notes_form.event_notes.data
-        database.session.commit()
-        flash('Event notes updated!', 'info')
-        return redirect(url_for('events.event_edit', event_id=event_id))
     elif request.method == 'GET':
         event_name_form.event_name.data = event.name
-        event_extra_charge_form.extra_charges.data = event.extra_charges
+        event_edit_form.extra_charges.data = event.extra_charges
         if event.notes:
-            event_notes_form.event_notes.data = event.notes
+            event_edit_form.event_notes.data = event.notes
 
     return render_template('event_edit.html', title=f'{event.name} - Edit', event_name_form=event_name_form,
-                           event_extra_charge_form=event_extra_charge_form, event_notes_form=event_notes_form,
-                           event=event)
+                           event_extra_charge_form=event_edit_form, event=event)
 
 
 @events.route("/category_settings/<int:event_id>/remove/", methods=['GET'])

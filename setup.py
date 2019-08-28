@@ -5,7 +5,7 @@ with open("README.md", "r") as openReadMe:
 
 setup(
     name="Group Buy Organizer",
-    version="1.0.1",
+    version="1.0.2",
     author="Mark Michon",
     author_email="markmichon7@gmail.com",
     description="📦 Quickly coordinate large wholesale group orders with this easy to use web app.",
